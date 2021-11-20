@@ -1,0 +1,2 @@
+# Differentiator
+Program calculate derivatives
