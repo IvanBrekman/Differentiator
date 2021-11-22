@@ -64,9 +64,11 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
 } while (0)
 
 #define LOG_DUMP_GRAPH(obj, reason, func) do {                                      \
-    FILE* gr_log = open_file("log.html", "a");                                      \
-    if (LOG_GRAPH == 1) func(obj, reason, gr_log);                                  \
-    close_file(gr_log);                                                             \
+    if (LOG_GRAPH == 1) {                                                           \
+        FILE* gr_log = open_file("log.html", "a");                                  \
+        func(obj, reason, gr_log);                                                  \
+        close_file(gr_log);                                                         \
+    }                                                                               \
 } while (0)
 
 #define PRINT_WARNING(text) do {                                                    \
@@ -82,20 +84,18 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
     char* command = (char*) calloc_s(MAX_SPRINTF_STRING_SIZE, sizeof(char));        \
     sprintf(command, format);                                                       \
                                                                                     \
-    int result = system(command);                                                   \
+    system(command);                                                                \
                                                                                     \
     FREE_PTR(command, char);                                                        \
-    return result;                                                                  \
 } while (0)
 
 #define SPR_FPUTS(file, format...) do {                                             \
     char* string = (char*) calloc_s(MAX_SPRINTF_STRING_SIZE, sizeof(char));         \
     sprintf(string, format);                                                        \
                                                                                     \
-    int result = fputs(file, string);                                               \
+    fputs(string, file);                                                            \
                                                                                     \
     FREE_PTR(string, char);                                                         \
-    return result;                                                                  \
 } while (0)
 
 #define ASSERT_IF(cond, text, ret) do {                                             \

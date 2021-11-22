@@ -8,3 +8,9 @@ c:
 
 r:
 	./main.out
+
+
+dcr:
+	clear
+	gcc differentiator/differentiator.cpp libs/baselib.cpp libs/tree.cpp -lstdc++ -o differentiator/differentiator.out
+	  ./differentiator/differentiator.out function.txt

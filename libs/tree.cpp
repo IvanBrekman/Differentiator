@@ -128,7 +128,7 @@ int Tree_error(Tree* tree) {
     return errors::OK_;
 }
 
-int Node_error(Node* node, int recursive_check) {
+int Node_error(Node* node, int recursive_check, int (*node_data_ok)(node_t data)) {
     if (!VALID_PTR(node)) {
         return errors::INVALID_NODE_PTR;
     }
@@ -146,6 +146,10 @@ int Node_error(Node* node, int recursive_check) {
 
     if (node->depth < 0) {
         return errors::INCORRECT_DEPTH;
+    }
+
+    if (VALID_PTR(node_data_ok) && !node_data_ok(node->data)) {
+        return errors::INCORRECT_DATA;
     }
 
     int err = -1;
@@ -236,15 +240,6 @@ int get_inorder_nodes(Node* node, std::list<Node*>* nodes) {
     return 1;
 }
 
-int print_node(Node* node) {
-    ASSERT_OK(node, Node, "Check before print func", 0);
-
-    printf( "Node:  %p\n"
-            "Value: '%s'\n", node, node->data);
-    
-    return 1;
-}
-
 int Node_dump(Node* node, const char* reason, FILE* log) {
     ASSERT_IF(VALID_PTR(node),   "Invalid node ptr",   0);
     ASSERT_IF(VALID_PTR(reason), "Invalid reason ptr", 0);
@@ -279,8 +274,8 @@ int Node_dump(Node* node, const char* reason, FILE* log) {
             node->right,  VALID_PTR(node->right)  ? "" : node->right  == NULL ? COLORED_OUTPUT("NULL", BLUE, log) : COLORED_OUTPUT("(BAD)", RED, log)
     );
 
-    if (!VALID_PTR(node->data))  fprintf(log, " Value: %p (%s)\n", node->data, COLORED_OUTPUT("Cant access to data", RED, log));
-    else                         fprintf(log, " Value: '%s'\n", node->data);
+    fprintf(log, " Data: type - %2d\n"
+                 "      value - '%c'\n", node->data.type, node->data.value);
     fprintf(log, "-------------------------------------------------------------------------------\n");
 
     return 1;
@@ -346,24 +341,19 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
     Node* root = tree->root;
 
     // Fill data to graphiz----------------------------------------------------
-    char* node_str = (char*) calloc(MAX_SPRINTF_STRING_SIZE, sizeof(char));
-
-    sprintf(node_str, "\tdepth[ shape=component label=\"depth: %d\" ]\n"
-                      "\t size[ shape=component label=\"size:  %d\" ]\n",
-            depth, size
+    SPR_FPUTS(dot_file, "\tdepth[ shape=component label=\"depth: %d\" ]\n"
+                        "\t size[ shape=component label=\"size:  %d\" ]\n",
+              depth, size
     );
-    fputs(node_str, dot_file);
 
     fputs("\t{\n\t\tnode[ style=invis ]\n\t\tedge[ style=invis ]\n", dot_file);
     for (int i = 0; i <= depth; i++) {
-        sprintf(node_str, "\t\t%d -> %d\n", i - 1, i);
-        fputs(node_str, dot_file);   
+        SPR_FPUTS(dot_file, "\t\t%d -> %d\n", i - 1, i);
     }
 
-    fputs("\t}\n\n\t{\n\t\trank = same; -1;\n\t\tnode[ style=invis width=2 ]\n\t\tedge[ style=invis ]\n", dot_file);
+    fputs("\t}\n\n\t{\n\t\trank = same; -1;\n\t\tnode[ style=invis ]\n\t\tedge[ style=invis ]\n", dot_file);
     for (int i = 1; i < size; i++) {
-        sprintf(node_str, "\t\thor_%d -> hor_%d\n", i, i + 1);
-        fputs(node_str, dot_file);
+        SPR_FPUTS(dot_file, "\t\thor_%d -> hor_%d\n", i, i + 1);
     }
     fputs("\t}\n", dot_file);
 
@@ -373,27 +363,37 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
     fputs("\n\t{\n\t\tedge[ style=invis weight=1000 ]\n", dot_file);
     int hor_cell_index = 1;
     for (Node* cur_node : nodes) {
-        sprintf(node_str, "\t\t%d -> hor_%d\n", INT_ADDRESS(cur_node), hor_cell_index++);
-        fputs(node_str, dot_file);
+        SPR_FPUTS(dot_file, "\t\t%d -> hor_%d\n", INT_ADDRESS(cur_node), hor_cell_index++);
     }
     fputs("\t}\n\n", dot_file);
 
     for (Node* cur_node : nodes) {
         int err = Node_error(cur_node);
-        sprintf(node_str, "\t%d[shape=record label=\"%s|%d\" width=2 color=\"%s\"]\n", INT_ADDRESS(cur_node), cur_node->data, cur_node->depth, err == 0 ? "green" : "red");
-        fputs(node_str, dot_file);
+
+        char* color = (char*)"black";
+        if (cur_node->data.type == data_type::ERROR_T) color = (char*)"red";
+        if (cur_node->data.type == data_type::CONST_T) color = (char*)"green";
+        if (cur_node->data.type == data_type::VAR_T)   color = (char*)"maroon";
+        if (cur_node->data.type == data_type::OPP_T)   color = (char*)"magenta2";
+
+        char* shape = (char*)"record";
+        if (cur_node->data.type == data_type::OPP_T) {
+            if (cur_node->data.value == opp_type::PLUS)     shape = (char*)"hexagon";
+            if (cur_node->data.value == opp_type::MINUS)    shape = (char*)"ellipse";
+            if (cur_node->data.value == opp_type::MULTIPLY) shape = (char*)"diamond";
+            if (cur_node->data.value == opp_type::DIVISION) shape = (char*)"triangle";
+        }
+
+        SPR_FPUTS(dot_file, "\t%d[ shape=%s label=\"%c\" width=2 fontsize=25 color=\"%s\" ]\n", INT_ADDRESS(cur_node), shape, cur_node->data.value, color);
 
         if (cur_node->parent != NULL && show_parent_edge) {
-            sprintf(node_str, "\t%d -> %d[weight=1]\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->parent));
-            fputs(node_str, dot_file);
+            SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->parent));
         }
         if (cur_node->left   != NULL) {
-            sprintf(node_str, "\t%d -> %d[label=\"Y\" weight=5]\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->left));
-            fputs(node_str, dot_file);
+            SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->left));
         }
         if (cur_node->right  != NULL) {
-            sprintf(node_str, "\t%d -> %d[label=\"N\" weight=5]\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->right));
-            fputs(node_str, dot_file);
+            SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->right));
         }
         fputs("\n", dot_file);
     }
@@ -411,11 +411,9 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
 
         if (pop_node->depth != cur_depth) {
             cur_depth = pop_node->depth;
-            sprintf(node_str, "%s\t{ rank = same; %d; %d;", pop_node == root ? "" : "}\n", cur_depth, INT_ADDRESS(pop_node));
-            fputs(node_str, dot_file);
+            SPR_FPUTS(dot_file, "%s\t{ rank = same; %d; %d;", pop_node == root ? "" : "}\n", cur_depth, INT_ADDRESS(pop_node));
         } else {
-            sprintf(node_str, " %d;", INT_ADDRESS(pop_node));
-            fputs(node_str, dot_file);
+            SPR_FPUTS(dot_file, " %d;", INT_ADDRESS(pop_node));
         }
     }
     fputs(" }\n", dot_file);
@@ -428,15 +426,12 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
     fclose(dot_file);
 
     time_t seconds = time(NULL);
-    sprintf(node_str, "dot -Tpng logs/dot_file.txt -o logs/graph_%ld.png", seconds);
-    system(node_str);
+    SPR_SYSTEM("dot -Tpng logs/dot_file.txt -o logs/graph_%ld.png", seconds);
 
     fputs("<h1 align=\"center\">Dump Tree</h1>\n<pre>\n", log);
     Tree_dump(tree, reason, log);
-    sprintf(node_str, "</pre>\n<img src=\"logs/graph_%ld.png\">\n\n", seconds);
-    fputs(node_str, log);
+    SPR_FPUTS(log, "</pre>\n<img src=\"logs/graph_%ld.png\">\n\n", seconds);
 
-    FREE_PTR(node_str, char);
     return seconds;
 }
 
@@ -459,7 +454,7 @@ int preorder_write_nodes_to_file(Node* node, FILE* file) {
 
     char* node_str = (char*) calloc(MAX_SPRINTF_STRING_SIZE, sizeof(char));
 
-    sprintf(node_str, "{ \"%s\" ", node->data);
+    sprintf(node_str, "{ \"%c\" ", node->data.value);
     fputs(node_str, file);
 
     if (node->left  != NULL) preorder_write_nodes_to_file(node->left,  file);
@@ -535,7 +530,7 @@ int analyze_tree_data(char* data, Tree* tree, std::list<Node_Child>* added_nodes
     data[close_qt] = '\0';
 
     Node* new_node = (Node*) calloc(1, sizeof(Node));
-    node_ctor(new_node, NULL, (node_t)strdup(&data[i + 1]));
+    //node_ctor(new_node, NULL, (node_t)strdup(&data[i + 1]));
     added_nodes->push_back({ new_node, 0 });
 
     data[close_qt] = '"';

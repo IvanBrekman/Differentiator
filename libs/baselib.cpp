@@ -51,7 +51,6 @@ int close_file(FILE* file) {
     ASSERT_IF(VALID_PTR(file), "Invalid file ptr", EOF);
 
     int result = fclose(file);
-    FREE_PTR(file, FILE);
 
     return result;
 }
