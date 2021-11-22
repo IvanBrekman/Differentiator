@@ -36,6 +36,12 @@
 const long CANARY           = 0x5AFEA2EA; // SAFE AREA
 const long POISON_CANARY    = 0xDEADA2EA; // DEAD AREA
 
+enum write_type {
+    PREORDER  = 0,
+    INORDER   = 1,
+    POSTORDER = 2,
+};
+
 enum data_type {
     ERROR_T = 0,
     CONST_T = 1,
@@ -141,8 +147,10 @@ int  Node_dump(Node* node, const char* reason, FILE* log=stdout);
 int  Tree_dump(Tree* tree, const char* reason, FILE* log=stdout);
 int  Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_edge=0);
 
-int  write_tree_to_file(Tree* tree, const char* filename);
+int  write_tree_to_file(Tree* tree, const char* filename, write_type w_type);
+ int inorder_write_nodes_to_file(Node* node, FILE* file);
 int preorder_write_nodes_to_file(Node* node, FILE* file);
+
 int read_tree_from_file(Tree* tree, const char* source_file);
 
 int update_tree_depth_size(Tree* tree);

@@ -47,5 +47,10 @@ int main(int argc, char** argv) {
     Tree_dump(&tree, "Check creating tree");
     LOG_DUMP_GRAPH(&tree, "Check creating tree", Tree_dump_graph);
 
+    write_tree_to_file(&tree, "logs/func.txt", write_type::INORDER);
+
+    tree_ctor(&tree);
+    read_tree_from_file(&tree, "logs/func.txt");
+
     return 0;
 }

@@ -35,4 +35,5 @@
 logs/dot_file.txt
 *.png
 
+logs/log.txt
 log.html
