@@ -502,31 +502,31 @@ int read_tree_from_file(Tree* tree, const char* source_file) {
     ASSERT_IF(VALID_PTR(source_file), "Invalid source_file ptr", 0);
 
     char* data = get_raw_text(source_file);
-    printf("raw text: '%s'\n", data);
+    LOG1(printf("raw text: '%s'\n", data););
 
     char* new_ptr = &data[0];
     char* old_ptr = &data[0];
     while (*old_ptr != '\0') {
-        if (isspace(*old_ptr)) {
-            old_ptr++;
-        } else {
+        if (!isspace(*old_ptr)) {
             *new_ptr = *old_ptr;
             new_ptr++;
-            old_ptr++;
         }
+        old_ptr++;
     }
     *new_ptr = '\0';
-    printf("no space text: '%s'\n", data);
+    LOG1(printf("no space text: '%s'\n", data););
     
 
     LOG1(printf("Start parsing data...\n"););
-    std::list<Node_Child> added_nodes = { };
     int shift = 0;
-    int analyze_result = analyze_tree_data(data, tree, &added_nodes, &shift);
+    Node* root = get_new_node(data, &shift);
     LOG1(printf("End parsing data.\n"););
 
+    tree->root = root;
+    update_tree_depth_size(tree);
+
     ASSERT_OK(tree, Tree, "Check after reading tree", 0);
-    return analyze_result;
+    return 1;
 }
 
 int update_tree_depth_size(Tree* tree) {
@@ -552,18 +552,62 @@ int update_tree_depth_size(Tree* tree) {
     return 1;
 }
 
-int analyze_tree_data(char* data, Tree* tree, std::list<Node_Child>* added_nodes, int* shift) {
-    ASSERT_IF(VALID_PTR(data), "Invalid data ptr", poisons::UNINITIALIZED_INT);
-    ASSERT_IF(VALID_PTR(tree), "Invalid tree ptr", poisons::UNINITIALIZED_INT);
-    ASSERT_IF(VALID_PTR(shift) || shift == NULL, "Invalid shift ptr", poisons::UNINITIALIZED_INT);
+Node* get_new_node(char* data, int* shift) {
+    ASSERT_IF(VALID_PTR(data), "Invalid data ptr", (Node*)poisons::UNINITIALIZED_PTR);
+    ASSERT_IF(VALID_PTR(shift) || shift == NULL, "Invalid shift ptr", (Node*)poisons::UNINITIALIZED_PTR);
 
-    return 1;
+    Node* new_node = (Node*) calloc_s(1, sizeof(Node));
+    node_ctor(new_node);
+
+    LOG2(get_new_node_func_debug(data, 0, new_node, "Start analyzing node"););
+
+    int i = 0;
+    if (data[i] == OPEN_BRACKET)  {
+        LOG2(get_new_node_func_debug(data, i, new_node, "Adding new node"););
+        *shift = 0;
+        Node* left_child = get_new_node(&data[i + 1], shift);
+
+          new_node->left   = left_child;
+        left_child->parent = new_node;
+    } else {
+        LOG2(get_new_node_func_debug(data, i, new_node, "Detected terminal node (or unary function)"););
+        if (data[i] == VARIABLE_SYMBOL) {
+            new_node->data = { data_type::VAR_T, VARIABLE_SYMBOL };
+        } else if (data[i] >= '0' && (data[i] - '0') <= 9) {
+            new_node->data = { data_type::CONST_T, data[i] };
+        }
+        i++; // TODO
+        // TODO Check unary functions
+
+        LOG2(get_new_node_func_debug(data, i, new_node, "Check added node"););
+        *shift = i + 2;
+        return new_node;
+    }
+    i += *shift;
+    LOG2(get_new_node_func_debug(data, i, new_node, "State after checking first child"););
+
+    // This is binary operator-------------------------------------------------
+    new_node->data = { data_type::OPP_T, data[i++] };
+    // ------------------------------------------------------------------------
+
+    LOG2(get_new_node_func_debug(data, i, new_node, "State before checking secong child"););
+    if (data[i] == OPEN_BRACKET) {
+        *shift = 0;
+        Node* right_child = get_new_node(&data[i + 1], shift);
+
+           new_node->right  = right_child;
+        right_child->parent = new_node;
+    }
+    i += *shift;
+    LOG2(get_new_node_func_debug(data, i, new_node, "State after checking second child"););
+
+    *shift = i + 2;
+    return new_node;
 }
 
-int analyze_func_debug(const char* data, int index, std::list<Node_Child>* added_nodes, const char* reason) {
-    ASSERT_IF(VALID_PTR(data),        "Invalid data ptr",        0);
-    ASSERT_IF(VALID_PTR(added_nodes), "Invalid added_nodes ptr", 0);
-    ASSERT_IF(VALID_PTR(reason),      "Invalid reason ptr",      0);
+int get_new_node_func_debug(const char* data, int index, Node* cur_node, const char* reason) {
+    ASSERT_IF(VALID_PTR(data),   "Invalid data ptr",   0);
+    ASSERT_IF(VALID_PTR(reason), "Invalid reason ptr", 0);
 
     printf("Reason: %s\n", reason);
 
@@ -572,19 +616,13 @@ int analyze_func_debug(const char* data, int index, std::list<Node_Child>* added
         if (i != index) printf("%c", data[i]);
         else            printf(GREEN "%c" NATURAL, data[i]);
     }
+    if (index >= len) {
+        for (int i = 0; i < index - len; i++) printf(GREEN "_" NATURAL);
+        printf(GREEN "↓" NATURAL);
+    }
+
+    printf("\ntype: %d; value: '%c'; ptr: %p\n", cur_node->data.type, cur_node->data.value, cur_node);
     printf("\n\n");
-
-    printf("Nodes: [ ");
-    for (Node_Child cur_node : *added_nodes) {
-        printf("'%5s' ", cur_node.node->data);
-    }
-    printf("]\n");
-
-    printf("Child: [ ");
-    for (Node_Child cur_node : *added_nodes) {
-        printf(" %5d  ", cur_node.child_amount);
-    }
-    printf("]\n********************************************************************************\n\n");
 
     return 1;
 }

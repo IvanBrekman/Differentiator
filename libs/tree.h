@@ -36,6 +36,10 @@
 const long CANARY           = 0x5AFEA2EA; // SAFE AREA
 const long POISON_CANARY    = 0xDEADA2EA; // DEAD AREA
 
+const int  OPEN_BRACKET   = '(';
+const int CLOSE_BRACKET   = ')';
+const int VARIABLE_SYMBOL = 'x';
+
 enum write_type {
     PREORDER  = 0,
     INORDER   = 1,
@@ -154,7 +158,7 @@ int preorder_write_nodes_to_file(Node* node, FILE* file);
 int read_tree_from_file(Tree* tree, const char* source_file);
 
 int update_tree_depth_size(Tree* tree);
-int analyze_tree_data(char* data, Tree* tree, std::list<Node_Child>* added_nodes, int* shift);
-int analyze_func_debug(const char* data, int index, std::list<Node_Child>* added_nodes, const char* reason);
+Node* get_new_node(char* data, int* shift);
+int get_new_node_func_debug(const char* data, int index, Node* cur_node, const char* reason);
 
 #endif // TREE_TREEH

@@ -33,7 +33,7 @@
 
 # Log file
 logs/dot_file.txt
-*.png
-
 logs/log.txt
+
+*.png
 log.html
