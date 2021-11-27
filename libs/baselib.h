@@ -18,6 +18,9 @@
 #endif
 
 #include <cstdio>
+#include <cstdlib>
+#include <cerrno>
+#include <cassert>
 
 #define dbg(code)      do { printf("%s:%d\n", __FILE__, __LINE__); code } while (0)
 #define LOCATION(var)  { TYPE, #var, __FILE__, __FUNCTION__, __LINE__ }
@@ -173,6 +176,7 @@ enum poisons {
 
 int      file_size(const char* filename);
 char* get_raw_text(const char* filename);
+char* delete_spaces(      char* string);
 
 int isbadreadptr(const void* ptr);
 char* datetime(char* calendar_date);

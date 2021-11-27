@@ -8,6 +8,7 @@
 #include <cassert>
 #include <cerrno>
 #include <ctime>
+#include <cctype>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -83,6 +84,24 @@ char* get_raw_text(const char* filename) {
 
     close_file(file);
     return data;
+}
+
+char* delete_spaces(char* string) {
+    ASSERT_IF(VALID_PTR(string), "Invalid string ptr", NULL);
+
+    char* new_ptr = &string[0];
+    char* old_ptr = &string[0];
+
+    while (*old_ptr != '\0') {
+        if (!isspace(*old_ptr)) {
+            *new_ptr = *old_ptr;
+            new_ptr++;
+        }
+        old_ptr++;
+    }
+    *new_ptr = '\0';
+
+    return string;
 }
 
 //! Function checks validity of pointer

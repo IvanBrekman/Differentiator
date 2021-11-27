@@ -4,14 +4,9 @@
 
 #include "../config.h"
 
-#include <cassert>
-#include <cerrno>
 #include <ctime>
-#include <cstring>
-#include <cctype>
 
 #include "baselib.h"
-
 #include "tree.h"
 
 int tree_ctor(Tree* tree) {
@@ -391,7 +386,8 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
             if (cur_node->data.value == opp_type::DIVISION) shape = (char*)"triangle";
         }
 
-        SPR_FPUTS(dot_file, "\t%d[ shape=%s label=\"%c\" width=2 fontsize=25 color=\"%s\" ]\n", INT_ADDRESS(cur_node), shape, cur_node->data.value, color);
+        if (cur_node->data.type != data_type::CONST_T) SPR_FPUTS(dot_file, "\t%d[ shape=%s label=\"%c\" width=2 fontsize=25 color=\"%s\" ]\n", INT_ADDRESS(cur_node), shape, cur_node->data.value, color);
+        else                                           SPR_FPUTS(dot_file, "\t%d[ shape=%s label=\"%d\" width=2 fontsize=25 color=\"%s\" ]\n", INT_ADDRESS(cur_node), shape, cur_node->data.value, color);
 
         if (cur_node->parent != NULL && show_parent_edge) {
             SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->parent));
@@ -498,37 +494,6 @@ int inorder_write_nodes_to_file(Node* node, FILE* file) {
     return 1;
 }
 
-int read_tree_from_file(Tree* tree, const char* source_file) {
-    ASSERT_IF(VALID_PTR(source_file), "Invalid source_file ptr", 0);
-
-    char* data = get_raw_text(source_file);
-    LOG1(printf("raw text: '%s'\n", data););
-
-    char* new_ptr = &data[0];
-    char* old_ptr = &data[0];
-    while (*old_ptr != '\0') {
-        if (!isspace(*old_ptr)) {
-            *new_ptr = *old_ptr;
-            new_ptr++;
-        }
-        old_ptr++;
-    }
-    *new_ptr = '\0';
-    LOG1(printf("no space text: '%s'\n", data););
-    
-
-    LOG1(printf("Start parsing data...\n"););
-    int shift = 0;
-    Node* root = get_new_node(data, &shift);
-    LOG1(printf("End parsing data.\n"););
-
-    tree->root = root;
-    update_tree_depth_size(tree);
-
-    ASSERT_OK(tree, Tree, "Check after reading tree", 0);
-    return 1;
-}
-
 int update_tree_depth_size(Tree* tree) {
     ASSERT_OK(tree, Tree, "Chek before update_tree_depth_size func", 0);
 
@@ -549,80 +514,5 @@ int update_tree_depth_size(Tree* tree) {
     tree->size = size;
 
     ASSERT_OK(tree, Tree, "Chek after update_tree_depth_size func", 0);
-    return 1;
-}
-
-Node* get_new_node(char* data, int* shift) {
-    ASSERT_IF(VALID_PTR(data), "Invalid data ptr", (Node*)poisons::UNINITIALIZED_PTR);
-    ASSERT_IF(VALID_PTR(shift) || shift == NULL, "Invalid shift ptr", (Node*)poisons::UNINITIALIZED_PTR);
-
-    Node* new_node = (Node*) calloc_s(1, sizeof(Node));
-    node_ctor(new_node);
-
-    LOG2(get_new_node_func_debug(data, 0, new_node, "Start analyzing node"););
-
-    int i = 0;
-    if (data[i] == OPEN_BRACKET)  {
-        LOG2(get_new_node_func_debug(data, i, new_node, "Adding new node"););
-        *shift = 0;
-        Node* left_child = get_new_node(&data[i + 1], shift);
-
-          new_node->left   = left_child;
-        left_child->parent = new_node;
-    } else {
-        LOG2(get_new_node_func_debug(data, i, new_node, "Detected terminal node (or unary function)"););
-        if (data[i] == VARIABLE_SYMBOL) {
-            new_node->data = { data_type::VAR_T, VARIABLE_SYMBOL };
-        } else if (data[i] >= '0' && (data[i] - '0') <= 9) {
-            new_node->data = { data_type::CONST_T, data[i] };
-        }
-        i++; // TODO
-        // TODO Check unary functions
-
-        LOG2(get_new_node_func_debug(data, i, new_node, "Check added node"););
-        *shift = i + 2;
-        return new_node;
-    }
-    i += *shift;
-    LOG2(get_new_node_func_debug(data, i, new_node, "State after checking first child"););
-
-    // This is binary operator-------------------------------------------------
-    new_node->data = { data_type::OPP_T, data[i++] };
-    // ------------------------------------------------------------------------
-
-    LOG2(get_new_node_func_debug(data, i, new_node, "State before checking secong child"););
-    if (data[i] == OPEN_BRACKET) {
-        *shift = 0;
-        Node* right_child = get_new_node(&data[i + 1], shift);
-
-           new_node->right  = right_child;
-        right_child->parent = new_node;
-    }
-    i += *shift;
-    LOG2(get_new_node_func_debug(data, i, new_node, "State after checking second child"););
-
-    *shift = i + 2;
-    return new_node;
-}
-
-int get_new_node_func_debug(const char* data, int index, Node* cur_node, const char* reason) {
-    ASSERT_IF(VALID_PTR(data),   "Invalid data ptr",   0);
-    ASSERT_IF(VALID_PTR(reason), "Invalid reason ptr", 0);
-
-    printf("Reason: %s\n", reason);
-
-    int len = strlen(data);
-    for (int i = 0; i < len; i++) {
-        if (i != index) printf("%c", data[i]);
-        else            printf(GREEN "%c" NATURAL, data[i]);
-    }
-    if (index >= len) {
-        for (int i = 0; i < index - len; i++) printf(GREEN "_" NATURAL);
-        printf(GREEN "↓" NATURAL);
-    }
-
-    printf("\ntype: %d; value: '%c'; ptr: %p\n", cur_node->data.type, cur_node->data.value, cur_node);
-    printf("\n\n");
-
     return 1;
 }

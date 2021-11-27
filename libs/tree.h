@@ -5,8 +5,6 @@
 #ifndef TREE_TREEH
 #define TREE_TREEH
 
-#include <cstdio>
-#include <cstdlib>
 #include <list>
 
 #include "baselib.h"
@@ -36,10 +34,6 @@
 const long CANARY           = 0x5AFEA2EA; // SAFE AREA
 const long POISON_CANARY    = 0xDEADA2EA; // DEAD AREA
 
-const int  OPEN_BRACKET   = '(';
-const int CLOSE_BRACKET   = ')';
-const int VARIABLE_SYMBOL = 'x';
-
 enum write_type {
     PREORDER  = 0,
     INORDER   = 1,
@@ -53,12 +47,20 @@ enum data_type {
       OPP_T = 3
 };
 
+#define FUNC(name, val) name = val,
 enum  opp_type {
     PLUS     = '+',
     MINUS    = '-',
     MULTIPLY = '*',
-    DIVISION = '/'
+    DIVISION = '/',
+
+    SIN      = 's' * 256 * 256 + 'i' * 256 + 'n',
+    COS      = 'c' * 256 * 256 + 'o' * 256 + 's',
+    TG       =                   't' * 256 + 'g',
+    CTG      = 'c' * 256 * 256 + 't' * 256 + 'g',
+    LN       =                   'l' * 256 + 'n'
 };
+#undef FUNC
 
 struct exp_value {
     data_type type = data_type::ERROR_T;
@@ -155,10 +157,5 @@ int  write_tree_to_file(Tree* tree, const char* filename, write_type w_type);
  int inorder_write_nodes_to_file(Node* node, FILE* file);
 int preorder_write_nodes_to_file(Node* node, FILE* file);
 
-int read_tree_from_file(Tree* tree, const char* source_file);
-
 int update_tree_depth_size(Tree* tree);
-Node* get_new_node(char* data, int* shift);
-int get_new_node_func_debug(const char* data, int index, Node* cur_node, const char* reason);
-
 #endif // TREE_TREEH
