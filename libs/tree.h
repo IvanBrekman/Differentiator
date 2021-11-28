@@ -47,20 +47,12 @@ enum data_type {
       OPP_T = 3
 };
 
-#define FUNC(name, val) name = val,
 enum  opp_type {
     PLUS     = '+',
     MINUS    = '-',
     MULTIPLY = '*',
     DIVISION = '/',
-
-    SIN      = 's' * 256 * 256 + 'i' * 256 + 'n',
-    COS      = 'c' * 256 * 256 + 'o' * 256 + 's',
-    TG       =                   't' * 256 + 'g',
-    CTG      = 'c' * 256 * 256 + 't' * 256 + 'g',
-    LN       =                   'l' * 256 + 'n'
 };
-#undef FUNC
 
 struct exp_value {
     data_type type = data_type::ERROR_T;
@@ -151,7 +143,6 @@ int get_inorder_nodes(Node* node, std::list<Node*>* nodes);
 int print_node(Node* node);
 int  Node_dump(Node* node, const char* reason, FILE* log=stdout);
 int  Tree_dump(Tree* tree, const char* reason, FILE* log=stdout);
-int  Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_edge=0);
 
 int  write_tree_to_file(Tree* tree, const char* filename, write_type w_type);
  int inorder_write_nodes_to_file(Node* node, FILE* file);

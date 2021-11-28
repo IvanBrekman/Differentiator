@@ -4,18 +4,16 @@
 
 #include "../config.h"
 
-#include <ctime>
-
 #include "baselib.h"
 #include "tree.h"
 
 int tree_ctor(Tree* tree) {
     ASSERT_IF(VALID_PTR(tree), "Invalid tree ptr", 0);
 
-    Node root = { };
-    node_ctor(&root, NULL, (node_t)INIT_VALUE);
+    Node* root = (Node*) calloc_s(1 , sizeof(Node));
+    node_ctor(root, NULL, (node_t)INIT_VALUE);
 
-    tree->root  = &root;
+    tree->root  = root;
     tree->size  = 1;
     tree->depth = 0;
 
@@ -323,119 +321,6 @@ int Tree_dump(Tree* tree, const char* reason, FILE* log) {
     fprintf(log, "\n\n");
 
     return 1;
-}
-
-int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_edge) {
-    ASSERT_IF(VALID_PTR(tree),   "Invalid tree ptr",   0);
-    ASSERT_IF(VALID_PTR(log),    "Invalid log ptr",    0);
-    ASSERT_IF(VALID_PTR(reason), "Invalid reason ptr", 0);
-
-    FILE* dot_file = open_file("logs/dot_file.txt", "w");
-
-    fputs("digraph structs {\n", dot_file);
-    fputs("\trankdir=HR\n"
-          "\tlabel=\"", dot_file);
-    fputs(reason, dot_file);
-    fputs("\"\n\n", dot_file);
-
-    int size  = tree->size;
-    int depth = tree->depth;
-    Node* root = tree->root;
-
-    // Fill data to graphiz----------------------------------------------------
-    SPR_FPUTS(dot_file, "\tdepth[ shape=component label=\"depth: %d\" ]\n"
-                        "\t size[ shape=component label=\"size:  %d\" ]\n",
-              depth, size
-    );
-
-    fputs("\t{\n\t\tnode[ style=invis ]\n\t\tedge[ style=invis ]\n", dot_file);
-    for (int i = 0; i <= depth; i++) {
-        SPR_FPUTS(dot_file, "\t\t%d -> %d\n", i - 1, i);
-    }
-
-    fputs("\t}\n\n\t{\n\t\trank = same; -1;\n\t\tnode[ style=invis ]\n\t\tedge[ style=invis ]\n", dot_file);
-    for (int i = 1; i < size; i++) {
-        SPR_FPUTS(dot_file, "\t\thor_%d -> hor_%d\n", i, i + 1);
-    }
-    fputs("\t}\n", dot_file);
-
-    std::list<Node*> nodes = { };
-    get_inorder_nodes(root, &nodes);
-
-    fputs("\n\t{\n\t\tedge[ style=invis weight=1000 ]\n", dot_file);
-    int hor_cell_index = 1;
-    for (Node* cur_node : nodes) {
-        SPR_FPUTS(dot_file, "\t\t%d -> hor_%d\n", INT_ADDRESS(cur_node), hor_cell_index++);
-    }
-    fputs("\t}\n\n", dot_file);
-
-    for (Node* cur_node : nodes) {
-        int err = Node_error(cur_node);
-
-        char* color = (char*)"black";
-        if (cur_node->data.type == data_type::ERROR_T) color = (char*)"red";
-        if (cur_node->data.type == data_type::CONST_T) color = (char*)"green";
-        if (cur_node->data.type == data_type::VAR_T)   color = (char*)"maroon";
-        if (cur_node->data.type == data_type::OPP_T)   color = (char*)"magenta2";
-
-        char* shape = (char*)"record";
-        if (cur_node->data.type == data_type::OPP_T) {
-            if (cur_node->data.value == opp_type::PLUS)     shape = (char*)"hexagon";
-            if (cur_node->data.value == opp_type::MINUS)    shape = (char*)"ellipse";
-            if (cur_node->data.value == opp_type::MULTIPLY) shape = (char*)"diamond";
-            if (cur_node->data.value == opp_type::DIVISION) shape = (char*)"triangle";
-        }
-
-        if (cur_node->data.type != data_type::CONST_T) SPR_FPUTS(dot_file, "\t%d[ shape=%s label=\"%c\" width=2 fontsize=25 color=\"%s\" ]\n", INT_ADDRESS(cur_node), shape, cur_node->data.value, color);
-        else                                           SPR_FPUTS(dot_file, "\t%d[ shape=%s label=\"%d\" width=2 fontsize=25 color=\"%s\" ]\n", INT_ADDRESS(cur_node), shape, cur_node->data.value, color);
-
-        if (cur_node->parent != NULL && show_parent_edge) {
-            SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->parent));
-        }
-        if (cur_node->left   != NULL) {
-            SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->left));
-        }
-        if (cur_node->right  != NULL) {
-            SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->right));
-        }
-        fputs("\n", dot_file);
-    }
-
-    nodes.clear();
-    nodes.push_back(root);
-
-    int cur_depth = -1;
-    while (!nodes.empty()) {
-        Node* pop_node = nodes.front();
-        nodes.pop_front();
-
-        if (pop_node->left  != NULL) nodes.push_back(pop_node->left);
-        if (pop_node->right != NULL) nodes.push_back(pop_node->right);
-
-        if (pop_node->depth != cur_depth) {
-            cur_depth = pop_node->depth;
-            SPR_FPUTS(dot_file, "%s\t{ rank = same; %d; %d;", pop_node == root ? "" : "}\n", cur_depth, INT_ADDRESS(pop_node));
-        } else {
-            SPR_FPUTS(dot_file, " %d;", INT_ADDRESS(pop_node));
-        }
-    }
-    fputs(" }\n", dot_file);
-    
-
-    nodes.~list();
-    // ------------------------------------------------------------------------
-
-    fputs("}\n", dot_file);
-    fclose(dot_file);
-
-    time_t seconds = time(NULL);
-    SPR_SYSTEM("dot -Tpng logs/dot_file.txt -o logs/graph_%ld.png", seconds);
-
-    fputs("<h1 align=\"center\">Dump Tree</h1>\n<pre>\n", log);
-    Tree_dump(tree, reason, log);
-    SPR_FPUTS(log, "</pre>\n<img src=\"logs/graph_%ld.png\">\n\n", seconds);
-
-    return seconds;
 }
 
 int write_tree_to_file(Tree* tree, const char* filename, write_type w_type) {
