@@ -52,6 +52,7 @@ enum  opp_type {
     MINUS    = '-',
     MULTIPLY = '*',
     DIVISION = '/',
+    DEGREE   = '^'
 };
 
 struct exp_value {
@@ -137,6 +138,7 @@ int  is_left_child(Node* node);
 int is_right_child(Node* node);
 
 Node* find_node_by_value(Tree* tree, node_t value, std::list<NodeDesc>* path, int (*value_comparator) (node_t val1, node_t val2));
+Node* copy_node(Node* node, int clear_flag=0);
 
 int get_inorder_nodes(Node* node, std::list<Node*>* nodes);
 

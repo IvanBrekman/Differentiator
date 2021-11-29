@@ -75,10 +75,19 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
 } while (0)
 
 #define PRINT_WARNING(text) do {                                                    \
-    printf(ORANGE text NATURAL);                                                    \
+    printf(__FILE__ ":%d " ORANGE text NATURAL, __LINE__);                          \
     if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                       \
         FILE* wlog = open_file("log.txt", "a");                                     \
-        fprintf(wlog, text);                                                        \
+        fprintf(wlog, __FILE__ ":%d " text, __LINE__);                              \
+        close_file(wlog);                                                           \
+    }                                                                               \
+} while (0)
+
+#define APRINT_WARNING(text, args...) do {                                                    \
+    printf(__FILE__ ":%d " ORANGE text NATURAL, __LINE__, args);                          \
+    if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                       \
+        FILE* wlog = open_file("log.txt", "a");                                     \
+        fprintf(wlog, __FILE__ ":%d " text, __LINE__, args);                              \
         close_file(wlog);                                                           \
     }                                                                               \
 } while (0)

@@ -4,6 +4,8 @@
 
 #include "../config.h"
 
+#include <cstring>
+
 #include "baselib.h"
 #include "tree.h"
 
@@ -223,6 +225,19 @@ Node* find_node_by_value(Tree* tree, node_t value, std::list<NodeDesc>* path, in
     return need_node;
 }
 
+Node* copy_node(Node* node, int clear_flag) {
+    ASSERT_OK(node, Node, "Check before copy func", NULL);
+
+    Node* copied_node = (Node*) calloc_s(1, sizeof(Node));
+    memcpy(copied_node, node, sizeof(Node));
+
+    if (VALID_PTR(node->left))  add_child(copied_node, copy_node(node->left,  clear_flag), -1);
+    if (VALID_PTR(node->right)) add_child(copied_node, copy_node(node->right, clear_flag),  1);
+
+    if (clear_flag) node_dtor(node);
+    return copied_node;
+}
+
 int get_inorder_nodes(Node* node, std::list<Node*>* nodes) {
     ASSERT_OK(node, Node, "Check before get_inorder func", 0);
     ASSERT_IF(VALID_PTR(nodes), "Invalid nodes ptr", 0);
@@ -235,7 +250,6 @@ int get_inorder_nodes(Node* node, std::list<Node*>* nodes) {
 }
 
 int Node_dump(Node* node, const char* reason, FILE* log) {
-    ASSERT_IF(VALID_PTR(node),   "Invalid node ptr",   0);
     ASSERT_IF(VALID_PTR(reason), "Invalid reason ptr", 0);
     ASSERT_IF(VALID_PTR(log),    "Invalid log ptr",    0);
 
@@ -251,6 +265,8 @@ int Node_dump(Node* node, const char* reason, FILE* log) {
     fprintf(log, " Node state:    %d ", err);
     if (err != 0) fprintf(log, COLORED_OUTPUT("(%s)\n", RED,   log), error_desc(err));
     else          fprintf(log, COLORED_OUTPUT("(%s)\n", GREEN, log), error_desc(err));
+
+    if (!VALID_PTR(node)) return 0;
 
     fprintf(log, " Depth in tree: %d %s\n\n", node->depth, node->depth < 0 ? COLORED_OUTPUT("(BAD)", RED, log) : "");
 

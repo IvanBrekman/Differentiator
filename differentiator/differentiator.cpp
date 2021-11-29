@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cstring>
 #include <ctime>
+#include <cmath>
 #include <unistd.h>
 
 #include "../config.h"
@@ -13,9 +14,10 @@
 
 #include "differentiator.h"
 
-#define FUNC(name, val) { name, val },
+#define FUNC(name, code) { name, get_code(name) },
 const Functions ALL_FUNCTIONS[] = {
     #include "functions.h"
+    FUNC( "ln", DIV(DL, CL))
 };
 #undef FUNC
 
@@ -67,11 +69,18 @@ int main(int argc, char** argv) {
     Tree_dump(&tree, "check reading tree");
     LOG_DUMP_GRAPH(&tree, "Check creating tree", Tree_dump_graph);
 
+    tree.root = D(tree.root);
+    update_tree_depth_size(&tree);
+
+    getchar();
+    Tree_dump(&tree, "check differ tree");
+    LOG_DUMP_GRAPH(&tree, "Check differ tree", Tree_dump_graph);
+
     return 0;
 }
 
 int print_node_val(Node* node) {
-    ASSERT_IF(VALID_PTR(node), "Invalid node ptr", 0);
+    ASSERT_OK(node, Node, "Check before print_node_val func", 0);
 
     switch (node->data.type) {
         case CONST_T:
@@ -121,7 +130,6 @@ int read_tree_from_file(Tree* tree, const char* source_file) {
     return 1;
 }
 
-
 Node* get_new_node(ParseContext* data) {
     ASSERT_IF(VALID_PTR(data), "Invalid data ptr", (Node*)poisons::UNINITIALIZED_PTR);
 
@@ -138,6 +146,7 @@ Node* get_new_node(ParseContext* data) {
 
         if (node_type == data_type::OPP_T) {
             LOG2(printf("Detected unary function\n"););
+            dbg();
             GET_LEFT_CHILD(new_node);
         }
 
@@ -150,7 +159,7 @@ Node* get_new_node(ParseContext* data) {
     // ------------------------------------------------------------------------
 
     if (DATA_VAL != OPEN_BRACKET) {
-        PRINT_WARNING("Incorrect expression. Cant find left child");
+        PRINT_WARNING("Incorrect expression. Cant find left child\n");
         return NULL;
     }
     GET_LEFT_CHILD(new_node);
@@ -159,7 +168,7 @@ Node* get_new_node(ParseContext* data) {
     INDEX++;
 
     if (DATA_VAL != OPEN_BRACKET) {
-        PRINT_WARNING("Incorrect expression. Cant finc right child");
+        PRINT_WARNING("Incorrect expression. Cant finc right child\n");
         return NULL;
     }
     GET_RIGHT_CHILD(new_node);
@@ -171,6 +180,7 @@ Node* get_new_node(ParseContext* data) {
 int get_node_data(ParseContext* data, int* data_store) {
     ASSERT_IF(VALID_PTR(data),       "Invalid data ptr",       -1);
     ASSERT_IF(VALID_PTR(data_store), "Invalid data_store ptr", -1);
+    ASSERT_IF(strchr(data->data, CLOSE_BRACKET) != NULL, "Cant find close bracket (also maybe the is not open bracket?) for this node", -1);
 
     char* arg_str = (char*) calloc_s(MAX_SPRINTF_STRING_SIZE, sizeof(char));
 
@@ -185,8 +195,7 @@ int get_node_data(ParseContext* data, int* data_store) {
     arg_str[i] = '\0';
 
     LOG1(printf( "data:     '%s'\n"
-                 "argument: '%s'\n"
-                 "index, i: %d, %d\n", DATA, arg_str, INDEX, i););
+                 "argument: '%s'\n", DATA, arg_str););
 
     if (is_number(arg_str)) {
         INDEX += i;
@@ -319,6 +328,7 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
             if (value == opp_type::MINUS)    shape = (char*)"ellipse";
             if (value == opp_type::MULTIPLY) shape = (char*)"diamond";
             if (value == opp_type::DIVISION) shape = (char*)"triangle";
+            if (value == opp_type::DEGREE)   shape = (char*)"house";
         }
 
         /* First if checks if shape == "record" Ну да костыдек небольшой */
@@ -330,10 +340,10 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
             SPR_FPUTS(dot_file, "\t%d -> %d\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->parent));
         }
         if (cur_node->left   != NULL) {
-            SPR_FPUTS(dot_file, "\t%d -> %d\n[ label=\"L\" ]", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->left));
+            SPR_FPUTS(dot_file, "\t%d -> %d[ label=\"L\" ]\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->left));
         }
         if (cur_node->right  != NULL) {
-            SPR_FPUTS(dot_file, "\t%d -> %d\n[ label=\"R\" ]", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->right));
+            SPR_FPUTS(dot_file, "\t%d -> %d[ label=\"R\" ]\n", INT_ADDRESS(cur_node), INT_ADDRESS(cur_node->right));
         }
         fputs("\n", dot_file);
     }
@@ -373,4 +383,108 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
     SPR_FPUTS(log, "</pre>\n<img src=\"logs/graph_%ld.png\">\n\n", seconds);
 
     return seconds;
+}
+
+#include "DSL.h"
+#define FUNC(name, code) if (node->data.value == get_code(name)) return code;
+
+Node* D(Node* node) {
+    ASSERT_OK(node, Node, "Check before Ded func", NULL);
+
+    switch (node->data.type) {
+        case data_type::CONST_T: return NEW_CONST;
+        case data_type::VAR_T:   return NEW_VAL;
+        case data_type::OPP_T:
+            switch (node->data.value) {
+                case opp_type::PLUS:     return ADD(DL, DR);
+                case opp_type::MINUS:    return SUB(DL, DR);
+                case opp_type::MULTIPLY: return ADD(MUL(DL, CR), MUL(CL, DR));
+                case opp_type::DIVISION: return DIV(SUB(MUL(DL, CR), MUL(CL, DR)), MUL(CR, CR));
+                case opp_type::DEGREE: {
+                    double lval = calc_node(node->left);
+                    double rval = calc_node(node->right);
+
+                    if (IS_CONST(lval) && IS_CONST(rval)) return NEW_CONST;
+                    if (IS_CONST(lval) && IS_VAR  (rval)) return MUL(MUL(DEG(CL, CR), NEW_OPP(get_code("ln"), CL, NULL)), DR);
+                    if (IS_VAR  (lval) && IS_CONST(rval)) return MUL(MUL(CR, DEG(CL, SUB(CR, NEW_VAL))), DL);
+                    if (IS_VAR  (lval) && IS_VAR  (rval)) return MUL(DEG(CL, CR), ADD(MUL(DR, NEW_OPP(get_code("ln"), CL, NULL)), MUL(DIV(DL, CL), CR)));
+                }
+
+                default:
+                    #include "functions.h"
+                    FUNC( "ln", DIV(DL, CL))
+
+                    PRINT_WARNING("Unknown operator\n");
+                    return NULL;
+            }
+        
+        default:
+            APRINT_WARNING("Unexpected data_type: %d\n", node->data.type);
+            return NULL;
+    }
+}
+
+#undef FUNC
+
+Node* create_new_node(data_type type, int value, Node* parent,  Node* left, Node* right) {
+    ASSERT_IF(VALID_NODE(parent), "Invalid parent node ptr", NULL);
+    ASSERT_IF(VALID_NODE(left),   "Invalid left node ptr",   NULL);
+    ASSERT_IF(VALID_NODE(right),  "Invalid right node ptr",  NULL);
+
+    Node* new_node = (Node*) calloc_s(1, sizeof(Node));
+    node_ctor(new_node, NULL, { type, value });
+
+    new_node->parent = parent;
+    if (VALID_PTR(left))  add_child(new_node, left, -1);
+    if (VALID_PTR(right)) add_child(new_node, right, 1);
+
+    ASSERT_OK(new_node, Node, "Check after get_new_node func", NULL);
+    return new_node;
+}
+
+int get_code(const char* str) {
+    ASSERT_IF(VALID_PTR(str), "Invalid str ptr", -1);
+
+    int code = 0, i = 0;
+    int len = (int) strlen(str);
+    while (i < len) {
+        code += str[i] * pow(2, len - 1 - i);
+        i++;
+    }
+
+    return code;
+}
+
+double calc_node(Node* node) {
+    ASSERT_OK(node, Node, "Check before calc_node func", INFINITY);
+
+    switch (node->data.type) {
+        case data_type::CONST_T:
+            return (double) node->data.value;
+        case data_type::VAR_T:
+            return NAN;
+        case data_type::OPP_T: {
+            double lval = 0, rval = 0;
+            if (node->left  != NULL) lval = calc_node(node->left);
+            if (node->right != NULL) rval = calc_node(node->right);
+
+            switch (node->data.value) {
+                case opp_type::PLUS:     return lval + rval;
+                case opp_type::MINUS:    return lval - rval;
+                case opp_type::MULTIPLY: return lval * rval;
+                case opp_type::DIVISION: return lval / rval;
+                case opp_type::DEGREE:   return pow(lval, rval);
+
+                default:
+                    APRINT_WARNING("Calculation for operator with code %d is undefined.\n"
+                                   "Dont use this call for simplifications. Result of func will be (lval * rval)\n", node->data.value);
+                    errno = -1;
+                    return lval * rval;
+            }
+        }
+
+        default:
+            PRINT_WARNING("Incorret node data type\n");
+            return INFINITY;
+    }
 }

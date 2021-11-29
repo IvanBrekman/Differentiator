@@ -12,5 +12,5 @@ r:
 
 dcr:
 	clear
-	gcc differentiator/differentiator.cpp libs/baselib.cpp libs/tree.cpp -lstdc++ -o differentiator/differentiator.out
+	gcc differentiator/differentiator.cpp libs/baselib.cpp libs/tree.cpp -lstdc++ -lm -o differentiator/differentiator.out
 	  ./differentiator/differentiator.out function.txt

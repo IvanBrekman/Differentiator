@@ -28,6 +28,9 @@
 #define INDEX    data->index
 #define DATA_VAL DATA[INDEX]
 
+#define IS_CONST(val) !std::isnan(val)
+#define IS_VAR(val)    std::isnan(val)
+
 const int  OPEN_BRACKET   = '(';
 const int CLOSE_BRACKET   = ')';
 const int VARIABLE_SYMBOL = 'x';
@@ -53,3 +56,8 @@ int get_new_node_func_debug(const ParseContext* data, Node* cur_node, const char
 
 int  Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_edge=0);
 
+Node* D(Node* node);
+Node* create_new_node(data_type type, int value, Node* parent, Node* left, Node* right);
+
+int     get_code(const char* str);
+double calc_node(Node* node);
