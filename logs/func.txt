@@ -1,1 +1,1 @@
-arccos((x) + (3))
+(((sin((ch((x) ^ (x))) + (tg(x)))) ^ (x)) - (ln(arctg((5) * (x))))) / (arcsin((x) ^ (ln(tg((5) * (x))))))

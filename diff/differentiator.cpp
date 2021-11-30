@@ -13,6 +13,7 @@
 #include "../libs/tree.h"
 
 #include "differentiator.h"
+#include "../simp/simplifier.h"
 
 #define FUNC(name, code) { name, get_code(name) },
 const Functions ALL_FUNCTIONS[] = {
@@ -66,15 +67,18 @@ int main(int argc, char** argv) {
     tree_ctor(&tree);
     read_tree_from_file(&tree, "logs/func.txt");
 
-    Tree_dump(&tree, "check reading tree");
+    Tree_dump(&tree, "Check reading tree");
     LOG_DUMP_GRAPH(&tree, "Check creating tree", Tree_dump_graph);
 
-    tree.root = D(tree.root);
-    update_tree_depth_size(&tree);
+    getchar();
+    derivate_tree(&tree);
+    Tree_dump(&tree, "Check differ tree");
+    LOG_DUMP_GRAPH(&tree, "Check differ tree", Tree_dump_graph);
 
     getchar();
-    Tree_dump(&tree, "check differ tree");
-    LOG_DUMP_GRAPH(&tree, "Check differ tree", Tree_dump_graph);
+    simplify(&tree);
+    Tree_dump(&tree, "Check simplifying tree");
+    LOG_DUMP_GRAPH(&tree, "Check simplifying tree", Tree_dump_graph);
 
     return 0;
 }
@@ -299,6 +303,7 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
     for (int i = 1; i < size; i++) {
         SPR_FPUTS(dot_file, "\t\thor_%d -> hor_%d\n", i, i + 1);
     }
+    if (size == 1) fputs("\t\thor_1\n", dot_file);
     fputs("\t}\n", dot_file);
 
     std::list<Node*> nodes = { };
@@ -388,6 +393,24 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
 #include "DSL.h"
 #define FUNC(name, code) if (node->data.value == get_code(name)) return code;
 
+Tree* derivate_tree(Tree* tree) {
+    ASSERT_OK(tree, Tree, "Check before derivate_tree func", NULL);
+
+    LOG1(printf("Premilary simplification...\n"););
+    simplify(tree);
+
+    Node* d_root = D(tree->root);
+    node_dtor(tree->root);
+    tree->root = d_root;
+    update_tree_depth_size(tree);
+
+    LOG1(printf("Derivative simplification...\n"););
+    simplify(tree);
+
+    ASSERT_OK(tree, Tree, "Check after derivate_tree func", NULL);
+    return tree;
+}
+
 Node* D(Node* node) {
     ASSERT_OK(node, Node, "Check before Ded func", NULL);
 
@@ -399,7 +422,7 @@ Node* D(Node* node) {
                 case opp_type::PLUS:     return ADD(DL, DR);
                 case opp_type::MINUS:    return SUB(DL, DR);
                 case opp_type::MULTIPLY: return ADD(MUL(DL, CR), MUL(CL, DR));
-                case opp_type::DIVISION: return DIV(SUB(MUL(DL, CR), MUL(CL, DR)), MUL(CR, CR));
+                case opp_type::DIVISION: return DIV(SUB(MUL(DL, CR), MUL(CL, DR)), DEG(CR, NEW_VCONST(2)));
                 case opp_type::DEGREE: {
                     double lval = calc_node(node->left);
                     double rval = calc_node(node->right);

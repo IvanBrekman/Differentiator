@@ -110,11 +110,16 @@ char* delete_spaces(char* string) {
 int isbadreadptr(const void* ptr) {
     int nullfd = open("/dev/random", O_WRONLY);
 
+    int old_errno = errno;
     errno = 0;
+    
     write(nullfd, ptr, 1);
     close(nullfd);
 
-    return errno;
+    int result = errno;
+    errno = old_errno;
+
+    return result;
 }
 
 //! Function writes current date and time to calendar_date
@@ -131,11 +136,15 @@ char* datetime(char* calendar_date) {
     return calendar_date;
 }
 
+int is_integer(double number) {
+    return (number - (int)number) < FLOAT_COMPARE_PRESICION;
+}
+
 //! Function checks if string can be int
 //! \param string checking string
 //! \return       1 if string can be int, else 0
 int is_number(char* string) {
-    assert(VALID_PTR(string) && "Invalid string ptr");
+    ASSERT_IF(VALID_PTR(string), "Invalid string ptr", 1);
 
     int res = atoi(string);
 

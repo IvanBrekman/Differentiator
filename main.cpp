@@ -17,8 +17,8 @@ int main(int argc, char** argv) {
         scanf("%s", source_file);
     }
 
-        system("gcc differentiator/differentiator.cpp libs/baselib.cpp libs/tree.cpp -lstdc++ -lm -o differentiator/differentiator.out");
-    SPR_SYSTEM("./differentiator/differentiator.out %s", source_file);
+    system("make dc");
+    SPR_SYSTEM("./diff/differentiator.out %s", source_file);
 
     return 0;
 }

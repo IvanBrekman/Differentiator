@@ -56,6 +56,7 @@ int get_new_node_func_debug(const ParseContext* data, Node* cur_node, const char
 
 int  Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_edge=0);
 
+Tree* derivate_tree(Tree* tree);
 Node* D(Node* node);
 Node* create_new_node(data_type type, int value, Node* parent, Node* left, Node* right);
 

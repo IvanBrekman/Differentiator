@@ -8,12 +8,10 @@
 #define NEW_CONST NEW_VCONST(0)
 #define   NEW_VAL NEW_VCONST(1)
 
-#define LV node->left ->data.value
-#define RV node->right->data.value
 #define DL D(node->left)
 #define DR D(node->right)
-#define CL copy_node(node->left)
-#define CR copy_node(node->right)
+#define CL copy_node(node->left,  node->parent)
+#define CR copy_node(node->right, node->parent)
 
 #define ADD(L, R) NEW_OPP(opp_type::PLUS,     L, R)
 #define SUB(L, R) NEW_OPP(opp_type::MINUS,    L, R)

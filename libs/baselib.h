@@ -30,6 +30,8 @@
 #define IS_TERMINAL(file)                (file == stdin) || (file == stdout) || (file == stderr)
 #define INT_ADDRESS(ptr)                 (int)((char*)(ptr) - (char*)0)
 
+const double FLOAT_COMPARE_PRESICION = 0.0001;
+
 const int MAX_FILEPATH_SIZE       =  50;
 const int MAX_SPRINTF_STRING_SIZE = 200;
 
@@ -190,6 +192,7 @@ char* delete_spaces(      char* string);
 int isbadreadptr(const void* ptr);
 char* datetime(char* calendar_date);
 
+int is_integer(double number);
 int is_number(char* string);
 int digits_number(int number, int radix=10);
 int   extract_bit(int number, int bit);

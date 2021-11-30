@@ -54,6 +54,7 @@ int node_ctor(Node* node, Node* parent, node_t value) {
 
 int node_dtor(Node* node) {
     ASSERT_OK(node, Node, "Check before dtor call", 0);
+    LOG2(printf("killed node ptr: %p\n", node););
 
     if (node->left  != NULL) node_dtor(node->left);
     if (node->right != NULL) node_dtor(node->right);
@@ -225,16 +226,18 @@ Node* find_node_by_value(Tree* tree, node_t value, std::list<NodeDesc>* path, in
     return need_node;
 }
 
-Node* copy_node(Node* node, int clear_flag) {
+Node* copy_node(Node* node, Node* parent) {
     ASSERT_OK(node, Node, "Check before copy func", NULL);
+    ASSERT_IF(VALID_NODE(parent), "Invalip parent ptr", NULL);
 
     Node* copied_node = (Node*) calloc_s(1, sizeof(Node));
     memcpy(copied_node, node, sizeof(Node));
 
-    if (VALID_PTR(node->left))  add_child(copied_node, copy_node(node->left,  clear_flag), -1);
-    if (VALID_PTR(node->right)) add_child(copied_node, copy_node(node->right, clear_flag),  1);
+    copied_node->parent = parent;
+    if (VALID_PTR(node->left))   add_child(copied_node, copy_node(node->left,  copied_node), -1);
+    if (VALID_PTR(node->right))  add_child(copied_node, copy_node(node->right, copied_node),  1);
 
-    if (clear_flag) node_dtor(node);
+    ASSERT_OK(copied_node, Node, "Check after copy func", NULL);
     return copied_node;
 }
 
