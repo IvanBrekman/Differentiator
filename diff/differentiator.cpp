@@ -19,7 +19,7 @@
 #define FUNC(name, priority, template, code) { name, template, get_code(name), priority },
 const Functions ALL_FUNCTIONS[] = {
     #include "functions.h"
-    FUNC( "ln", 5, "//ln{L}", DIV(DL, CL) )
+    FUNC( "ln", 5, "\\ln{L}", DIV(DL, CL) )
 };
 #undef FUNC
 
@@ -375,6 +375,7 @@ Tree* derivate_tree(Tree* tree) {
     LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
     set_new_root(tree, D(tree->root));
+    LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
     latex_tree(tree, latex_session);
     LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););

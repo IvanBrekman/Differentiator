@@ -5,23 +5,23 @@
 #include "../libs/tree.h"
 
 #define GET_LEFT_CHILD(new_node) {                                                          \
-    LOG2(get_new_node_func_debug(data, new_node, "Getting left node"););                 \
-    INDEX++;                                    \
-    Node* left_child = get_new_node(data);                                   \
+    LOG2(get_new_node_func_debug(data, new_node, "Getting left node"););                    \
+    INDEX++;                                                                                \
+    Node* left_child = get_new_node(data);                                                  \
                                                                                             \
       new_node->left   = left_child;                                                        \
     left_child->parent = new_node;                                                          \
-    LOG2(get_new_node_func_debug(data, new_node, "Adding left node"););                  \
+    LOG2(get_new_node_func_debug(data, new_node, "Adding left node"););                     \
 }
 
 #define GET_RIGHT_CHILD(new_node) {                                                         \
-    LOG2(get_new_node_func_debug(data, new_node, "Getting right node"););                \
-    INDEX++;                                \
-    Node* right_child = get_new_node(data);                                  \
+    LOG2(get_new_node_func_debug(data, new_node, "Getting right node"););                   \
+    INDEX++;                                                                                \
+    Node* right_child = get_new_node(data);                                                 \
                                                                                             \
         new_node->right  = right_child;                                                     \
     right_child->parent = new_node;                                                         \
-    LOG2(get_new_node_func_debug(data, new_node, "Adding right node"););                 \
+    LOG2(get_new_node_func_debug(data, new_node, "Adding right node"););                    \
 }
 
 #define DATA     data->data

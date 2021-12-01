@@ -13,7 +13,7 @@
 #define FUNC(name, priority, template, code) { name, template, get_code(name), priority },
 const Functions ALL_FUNCTIONS[] = {
     #include "../diff/functions.h"
-    FUNC( "ln", 5, "//ln{L}", DIV(DL, CL) )
+    FUNC( "ln", 5, "\\ln{L}", DIV(DL, CL) )
 };
 #undef FUNC
 
@@ -147,8 +147,8 @@ NodeContext get_node_latex(Node* node) {
     NodeContext lcontext = { };
     NodeContext rcontext = { };
 
-    if (VALID_PTR(node->left)) lcontext = get_node_latex(node->left);
-    if (VALID_PTR(node->left)) rcontext = get_node_latex(node->right);
+    if (VALID_PTR(node->left))  lcontext = get_node_latex(node->left);
+    if (VALID_PTR(node->right)) rcontext = get_node_latex(node->right);
 
     LOG2(print_context(&lcontext););
     LOG2(print_context(&rcontext););
@@ -163,17 +163,26 @@ NodeContext get_node_latex(Node* node) {
         case opp_type::DIVISION:
             return render_template("\\frac{L}{R}",   context, lcontext, rcontext);
         case opp_type::DEGREE:
-            return render_template("{L}^{R}",        context, lcontext, rcontext);
+            return render_template("{L}^{R}",      context, lcontext, rcontext);;
         
         default:
+            for (int i = 0; i < sizeof(ALL_FUNCTIONS) / sizeof(ALL_FUNCTIONS[0]); i++) {
+                if (ALL_FUNCTIONS[i].code == VAL) {
+                    return render_template(ALL_FUNCTIONS[i].latex_temp, context, lcontext, rcontext);
+                }
+            }
+
             return { };
     }
 }
 
 NodeContext render_template(const char* node_template, NodeContext opp_context, NodeContext lcontext, NodeContext rcontext) {
     ASSERT_IF(VALID_PTR(node_template), "Invalid node_template ptr", { });
-    ASSERT_IF(strlen(node_template) + strlen(lcontext.data) + strlen(rcontext.data) + 4 < MAX_LATEX_STRING,
-              "Too big latex string. Increase MAX_LATEX_STRING constant", { });
+
+    size_t length = strlen(node_template);
+    if (VALID_PTR(lcontext.data)) length += strlen(lcontext.data);
+    if (VALID_PTR(rcontext.data)) length += strlen(rcontext.data);
+    ASSERT_IF(length + 4 < MAX_LATEX_STRING, "Too big latex string. Increase MAX_LATEX_STRING constant", { });
 
     char* node_string = (char*) calloc_s(MAX_LATEX_STRING, sizeof(char));
 
@@ -186,7 +195,7 @@ NodeContext render_template(const char* node_template, NodeContext opp_context, 
 
             node_string[str_index] = '\0';
             str_index += (int) strlen(cur_context.data);
-            LOG2(printf("cutting...\n"
+            LOG2(printf("catting...\n"
                         "node_string: '%s'\n"
                         "data:        '%s'\n\n", node_string, cur_context.data););
             strcat(node_string, cur_context.data);
@@ -206,6 +215,6 @@ NodeContext render_template(const char* node_template, NodeContext opp_context, 
 
     // dbg(printf("lcontext data: %p (%d): '%s'\nrcontext data: %p (%d): '%s'\n\n", lcontext.data, VALID_PTR(lcontext.data), lcontext.data, rcontext.data, VALID_PTR(rcontext.data), rcontext.data););
     // FREE_PTR(lcontext.data, char);
-    FREE_PTR(rcontext.data, char);
+    // FREE_PTR(rcontext.data, char);
     return { opp_context.priority, lcontext.nodes_amount + rcontext.nodes_amount, node_string };
 }
