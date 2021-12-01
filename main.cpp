@@ -20,5 +20,6 @@ int main(int argc, char** argv) {
     system("make dc");
     SPR_SYSTEM("./diff/differentiator.out %s", source_file);
 
+    if (argc <= 1) FREE_PTR(source_file, char);
     return 0;
 }

@@ -9,6 +9,10 @@
     #define VALIDATE_LEVEL 0
 #endif
 
+#ifndef EXECUTE_WAITINGS
+    #define EXECUTE_WAITINGS 0
+#endif
+
 #ifndef LOG_PRINTF
     #define LOG_PRINTF 0
 #endif
@@ -25,6 +29,7 @@
 #define dbg(code)      do { printf("%s:%d\n", __FILE__, __LINE__); code } while (0)
 #define LOCATION(var)  { TYPE, #var, __FILE__, __FUNCTION__, __LINE__ }
 #define VALID_PTR(ptr) !isbadreadptr((const void*)(ptr))
+#define WAIT_INPUT     do { if (EXECUTE_WAITINGS == 1) { printf(BLUE "Press any button...\n" NATURAL); getchar(); } } while(0)
 
 #define COLORED_OUTPUT(str, color, file) IS_TERMINAL(file) ? (color str NATURAL) : str
 #define IS_TERMINAL(file)                (file == stdin) || (file == stdout) || (file == stderr)
@@ -85,11 +90,11 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
     }                                                                               \
 } while (0)
 
-#define APRINT_WARNING(text, args...) do {                                                    \
-    printf(__FILE__ ":%d " ORANGE text NATURAL, __LINE__, args);                          \
+#define APRINT_WARNING(text, args...) do {                                          \
+    printf(__FILE__ ":%d " ORANGE text NATURAL, __LINE__, args);                    \
     if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                       \
         FILE* wlog = open_file("log.txt", "a");                                     \
-        fprintf(wlog, __FILE__ ":%d " text, __LINE__, args);                              \
+        fprintf(wlog, __FILE__ ":%d " text, __LINE__, args);                        \
         close_file(wlog);                                                           \
     }                                                                               \
 } while (0)
@@ -123,7 +128,7 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
 
 #define FREE_PTR(ptr, type) do {                \
     free((ptr));                                \
-    (ptr) = (type*)poisons::UNINITIALIZED_PTR;  \
+    (ptr) = (type*)poisons::FREED_PTR;          \
 } while (0)
 #define LOG1(code) do {                         \
     if (LOG_PRINTF >= 1) {                      \
@@ -199,7 +204,5 @@ int   extract_bit(int number, int bit);
 
 char* bin4(int number);
 const char* to_string(int number);
-
-int cmp_int(const void* num1, const void* num2);
 
 #endif //BASELIB_H

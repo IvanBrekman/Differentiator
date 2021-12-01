@@ -35,9 +35,10 @@ int simplify(Tree* tree) {
         else if (cur_simp <  simplifications_amount) return -1;
 
         simplifications_amount = cur_simp;
-        Tree_dump(tree, "Check simp iteration");
+
+        LOG2(Tree_dump(tree, "Check simp iteration"););
         LOG_DUMP_GRAPH(tree, "Check simp iteration", Tree_dump_graph);
-        getchar();
+        WAIT_INPUT;
     }
 
     update_tree_depth_size(tree);
@@ -61,9 +62,8 @@ int simplify_constants(Tree* tree) {
 
         if (errno == 0 && IS_CONST(res) && is_integer(res) && cur_node->data.type != data_type::CONST_T) {
             Node* node = NEW_VCONST((int)res);
-            printf("parent: %p; ptr: %p; res: %lf\n", cur_node->parent, node, res);
+            LOG2(printf("parent: %p; ptr: %p; res: %lf\n", cur_node->parent, node, res););
             UPDATE_DATA;
-            printf("node parent: %p\n", node->parent);
         } else {
             ADD_CHILDRENS(nodes, cur_node);
         }
@@ -114,7 +114,7 @@ int simplify_division(Tree* tree) {
                 Node* node = copy_node(cur_node->left, cur_node->parent);
                 UPDATE_DATA;
             } else if (RCONST(0)) {
-                PRINT_WARNING("Detected division by zero");
+                PRINT_WARNING("Detected division by zero\n");
             } else if (LCONST(0)) {
                 Node* node = NEW_VCONST(0);
                 UPDATE_DATA;
@@ -139,7 +139,7 @@ int simplify_addition(Tree* tree) {
 
         if (CHECK_OPP(opp_type::PLUS)) {
             if (LCONST(0) || RCONST(0)) {
-                Node* node = copy_node(LCONST(1) ? cur_node->right : cur_node->left, cur_node->parent);
+                Node* node = copy_node(LCONST(0) ? cur_node->right : cur_node->left, cur_node->parent);
                 UPDATE_DATA;
             }
         } 

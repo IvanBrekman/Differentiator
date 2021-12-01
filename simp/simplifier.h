@@ -22,8 +22,8 @@
     if (VALID_PTR(node->right)) list.push_back(node->right);                            \
 }
 
-#define LCONST(val) cur_node->left-> data.type == data_type::CONST_T && cur_node->left-> data.value == val
-#define RCONST(val) cur_node->right->data.type == data_type::CONST_T && cur_node->right->data.value == val
+#define LCONST(val) (cur_node->left-> data.type == data_type::CONST_T && cur_node->left-> data.value == val)
+#define RCONST(val) (cur_node->right->data.type == data_type::CONST_T && cur_node->right->data.value == val)
 
 #define CHECK_TYPE_AND_VAL(node, type_, val) node->data.type == type_ && node->data.value == val
 #define CHECK_OPP(opp) CHECK_TYPE_AND_VAL(cur_node, data_type::OPP_T, opp)

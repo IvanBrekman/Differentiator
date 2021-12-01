@@ -41,8 +41,10 @@ struct ParseContext {
 };
 
 struct Functions {
-    const char* name = NULL;
-    const int   code = -1;
+    const char*       name = NULL;
+    const char* latex_temp = NULL;
+    const int         code = -1;
+    const int     priority = -1;
 };
 
 int print_node_val(Node* node);

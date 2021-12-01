@@ -31,8 +31,8 @@
 #define IND_STRCHR(ptr, index, sym) (int)(strchr(&(ptr)[index], sym) - (ptr))
 #define VALID_NODE(ptr) (VALID_PTR(ptr) || (ptr) == NULL)
 
-const long CANARY           = 0x5AFEA2EA; // SAFE AREA
-const long POISON_CANARY    = 0xDEADA2EA; // DEAD AREA
+const long unsigned CANARY           = 0x5AFEA2EA; // SAFE AREA
+const long unsigned POISON_CANARY    = 0xDEADA2EA; // DEAD AREA
 
 enum write_type {
     PREORDER  = 0,
@@ -65,7 +65,7 @@ const node_t INIT_VALUE   = (node_t){ data_type::ERROR_T, poisons::UNINITIALIZED
 const node_t DEINIT_VALUE = (node_t){ data_type::ERROR_T, poisons::FREED_ELEMENT };
 
 struct Node {
-    long left_canary  = POISON_CANARY;
+    long unsigned left_canary  = POISON_CANARY;
 
     node_t data  = (node_t) { };
 
@@ -75,7 +75,7 @@ struct Node {
 
     int depth    = poisons::UNINITIALIZED_INT;
 
-    long right_canary = POISON_CANARY;
+    long unsigned right_canary = POISON_CANARY;
 };
 
 struct Tree {
@@ -109,8 +109,6 @@ enum errors {
     INVALID_PARENT   =  -6,
     INVALID_LEFT     =  -7,
     INVALID_RIGHT    =  -8,
-
-    INCORRECT_DATA   =  -9,
     // --------------------
 
     // Tree errors---------
@@ -129,8 +127,9 @@ int node_dtor(Node* node);
 
 const char* error_desc(int error_code);
 int Tree_error(Tree* tree);
-int Node_error(Node* node, int recursive_check=0, int (*node_data_ok)(node_t data)=NULL);
+int Node_error(Node* node, int recursive_check=0);
 
+int   set_new_root(Tree* tree,   Node* new_root);
 int      add_child(Node* parent, Node* child, int is_left_child);
 int        is_leaf(Node* node);
 int   is_full_node(Node* node);
@@ -146,7 +145,7 @@ int print_node(Node* node);
 int  Node_dump(Node* node, const char* reason, FILE* log=stdout);
 int  Tree_dump(Tree* tree, const char* reason, FILE* log=stdout);
 
-int  write_tree_to_file(Tree* tree, const char* filename, write_type w_type);
+int  write_tree_to_file(Tree* tree, const char* filename, int w_type);
  int inorder_write_nodes_to_file(Node* node, FILE* file);
 int preorder_write_nodes_to_file(Node* node, FILE* file);
 

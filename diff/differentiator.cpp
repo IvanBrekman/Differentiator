@@ -14,11 +14,12 @@
 
 #include "differentiator.h"
 #include "../simp/simplifier.h"
+#include "../tex_maker/latex.h"
 
-#define FUNC(name, code) { name, get_code(name) },
+#define FUNC(name, priority, template, code) { name, template, get_code(name), priority },
 const Functions ALL_FUNCTIONS[] = {
     #include "functions.h"
-    FUNC( "ln", DIV(DL, CL))
+    FUNC( "ln", 5, "//ln{L}", DIV(DL, CL) )
 };
 #undef FUNC
 
@@ -32,54 +33,17 @@ int main(int argc, char** argv) {
 
     Tree tree = { };
     tree_ctor(&tree);
-
-    Node node1 = { };
-    node_ctor(&node1, NULL, { data_type::OPP_T, '/' });
-
-    Node node2 = { };
-    node_ctor(&node2, NULL, { data_type::OPP_T, '+' });
-    Node node3 = { };
-    node_ctor(&node3, NULL, { data_type::OPP_T, '-' });
-
-    Node node4 = { };
-    node_ctor(&node4, NULL, { data_type::CONST_T, '2' });
-    Node node5 = { };
-    node_ctor(&node5, NULL, { data_type::VAR_T,   'x' });
-    Node node6 = { };
-    node_ctor(&node6, NULL, { data_type::CONST_T, '3' });
-    Node node7 = { };
-    node_ctor(&node7, NULL, { data_type::VAR_T,   'x' });
-
-    tree.root = &node1;
-    ADD_CHILD(tree, node1, node2, -1);
-    ADD_CHILD(tree, node1, node3,  1);
-
-    ADD_CHILD(tree, node2, node4, -1);
-    ADD_CHILD(tree, node2, node5,  1);
-    ADD_CHILD(tree, node3, node6, -1);
-    ADD_CHILD(tree, node3, node7,  1);
-
-    //Tree_dump(&tree, "Check creating tree");
-    //LOG_DUMP_GRAPH(&tree, "Check creating tree", Tree_dump_graph);
-
-    //write_tree_to_file(&tree, "logs/func.txt", write_type::INORDER);
-
-    tree_ctor(&tree);
     read_tree_from_file(&tree, "logs/func.txt");
 
-    Tree_dump(&tree, "Check reading tree");
+    LOG2(Tree_dump(&tree, "Check reading tree"););
     LOG_DUMP_GRAPH(&tree, "Check creating tree", Tree_dump_graph);
-
-    getchar();
+    WAIT_INPUT;
+    
     derivate_tree(&tree);
-    Tree_dump(&tree, "Check differ tree");
+    LOG2(Tree_dump(&tree, "Check differ tree"););
     LOG_DUMP_GRAPH(&tree, "Check differ tree", Tree_dump_graph);
 
-    getchar();
-    simplify(&tree);
-    Tree_dump(&tree, "Check simplifying tree");
-    LOG_DUMP_GRAPH(&tree, "Check simplifying tree", Tree_dump_graph);
-
+    tree_dtor(&tree);
     return 0;
 }
 
@@ -105,7 +69,7 @@ int print_node_val(Node* node) {
 }
 
 const char* get_func_name(int func_code) {
-    for (int i = 0; i < sizeof(ALL_FUNCTIONS) / sizeof(ALL_FUNCTIONS[0]); i++) {
+    for (int i = 0; i < int(sizeof(ALL_FUNCTIONS) / sizeof(ALL_FUNCTIONS[0])); i++) {
         if (ALL_FUNCTIONS[i].code == func_code) {
             return ALL_FUNCTIONS[i].name;
         }
@@ -125,11 +89,11 @@ int read_tree_from_file(Tree* tree, const char* source_file) {
     LOG1(printf("Start parsing data...\n"););
     ParseContext context = { data, 0 };
     Node* root = get_new_node(&context);
-    LOG1(printf("End parsing data.\n"););
+    LOG1(printf("End parsing data.\n\n"););
 
-    tree->root = root;
-    update_tree_depth_size(tree);
+    set_new_root(tree, root);
 
+    FREE_PTR(data, char);
     ASSERT_OK(tree, Tree, "Check after reading tree", 0);
     return 1;
 }
@@ -204,24 +168,31 @@ int get_node_data(ParseContext* data, int* data_store) {
     if (is_number(arg_str)) {
         INDEX += i;
         *data_store = atoi(arg_str);
+
+        FREE_PTR(arg_str, char);
         return data_type::CONST_T;
     }
 
     if (arg_str[0] == VARIABLE_SYMBOL && arg_str[1] == '\0') {
         INDEX += i;
         *data_store = VARIABLE_SYMBOL;
+
+        FREE_PTR(arg_str, char);
         return data_type::VAR_T;
     }
 
     *strchr(arg_str, OPEN_BRACKET) = '\0';
-    for (int i = 0; i < sizeof(ALL_FUNCTIONS) / sizeof(ALL_FUNCTIONS[0]); i++) {
+    for (i = 0; i < (int)(sizeof(ALL_FUNCTIONS) / sizeof(ALL_FUNCTIONS[0])); i++) {
         if (strcmp(arg_str, ALL_FUNCTIONS[i].name) == 0) {
-            INDEX += strlen(arg_str);
+            INDEX += (int)strlen(arg_str);
             *data_store = ALL_FUNCTIONS[i].code;
+
+            FREE_PTR(arg_str, char);
             return data_type::OPP_T;
         }
     }
 
+    FREE_PTR(arg_str, char);
     return -1;
 }
 
@@ -233,7 +204,7 @@ int get_new_node_func_debug(const ParseContext* data, Node* cur_node, const char
     printf("Reason: %s\n", reason);
     sleep(0);
 
-    int len = strlen(DATA);
+    int len = (int)strlen(DATA);
     for (int i = 0; i < len; i++) {
         if (i != INDEX) printf("%c", DATA[i]);
         else            printf(GREEN "%c" NATURAL, DATA[i]);
@@ -317,23 +288,22 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
     fputs("\t}\n\n", dot_file);
 
     for (Node* cur_node : nodes) {
-        int err   = Node_error(cur_node);
         int type  = cur_node->data.type;
         int value = cur_node->data.value;
 
-        char* color = (char*)"black";
-        if (type == data_type::ERROR_T) color = (char*)"red";
-        if (type == data_type::CONST_T) color = (char*)"green";
-        if (type == data_type::VAR_T)   color = (char*)"maroon";
-        if (type == data_type::OPP_T)   color = (char*)"magenta2";
+        const char* color = "black";
+        if (type == data_type::ERROR_T) color = "red";
+        if (type == data_type::CONST_T) color = "green";
+        if (type == data_type::VAR_T)   color = "maroon";
+        if (type == data_type::OPP_T)   color = "magenta2";
 
-        char* shape = (char*)"record";
+        const char* shape = "record";
         if (cur_node->data.type == data_type::OPP_T) {
-            if (value == opp_type::PLUS)     shape = (char*)"hexagon";
-            if (value == opp_type::MINUS)    shape = (char*)"ellipse";
-            if (value == opp_type::MULTIPLY) shape = (char*)"diamond";
-            if (value == opp_type::DIVISION) shape = (char*)"triangle";
-            if (value == opp_type::DEGREE)   shape = (char*)"house";
+            if (value == opp_type::PLUS)     shape = "hexagon";
+            if (value == opp_type::MINUS)    shape = "ellipse";
+            if (value == opp_type::MULTIPLY) shape = "diamond";
+            if (value == opp_type::DIVISION) shape = "triangle";
+            if (value == opp_type::DEGREE)   shape = "house";
         }
 
         /* First if checks if shape == "record" Ну да костыдек небольшой */
@@ -387,25 +357,30 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
     Tree_dump(tree, reason, log);
     SPR_FPUTS(log, "</pre>\n<img src=\"logs/graph_%ld.png\">\n\n", seconds);
 
-    return seconds;
+    return (int) seconds;
 }
 
 #include "DSL.h"
-#define FUNC(name, code) if (node->data.value == get_code(name)) return code;
+#define FUNC(name, priority, template, code) if (node->data.value == get_code(name)) return code;
 
 Tree* derivate_tree(Tree* tree) {
     ASSERT_OK(tree, Tree, "Check before derivate_tree func", NULL);
 
+    latex_tree(tree, "logs/latex.tex");
+
     LOG1(printf("Premilary simplification...\n"););
     simplify(tree);
+    latex_tree(tree, "logs/latex.tex");
+    LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
-    Node* d_root = D(tree->root);
-    node_dtor(tree->root);
-    tree->root = d_root;
-    update_tree_depth_size(tree);
+    set_new_root(tree, D(tree->root));
+
+    latex_tree(tree, "logs/latex.tex");
+    LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
     LOG1(printf("Derivative simplification...\n"););
     simplify(tree);
+    latex_tree(tree, "logs/latex.tex");
 
     ASSERT_OK(tree, Tree, "Check after derivate_tree func", NULL);
     return tree;
@@ -431,15 +406,18 @@ Node* D(Node* node) {
                     if (IS_CONST(lval) && IS_VAR  (rval)) return MUL(MUL(DEG(CL, CR), NEW_OPP(get_code("ln"), CL, NULL)), DR);
                     if (IS_VAR  (lval) && IS_CONST(rval)) return MUL(MUL(CR, DEG(CL, SUB(CR, NEW_VAL))), DL);
                     if (IS_VAR  (lval) && IS_VAR  (rval)) return MUL(DEG(CL, CR), ADD(MUL(DR, NEW_OPP(get_code("ln"), CL, NULL)), MUL(DIV(DL, CL), CR)));
+
+                    return NULL;
                 }
 
                 default:
                     #include "functions.h"
-                    FUNC( "ln", DIV(DL, CL))
+                    FUNC( "ln", 5, "\\ln{l}", DIV(DL, CL))
 
                     PRINT_WARNING("Unknown operator\n");
                     return NULL;
             }
+        case data_type::ERROR_T:
         
         default:
             APRINT_WARNING("Unexpected data_type: %d\n", node->data.type);
@@ -471,7 +449,7 @@ int get_code(const char* str) {
     int code = 0, i = 0;
     int len = (int) strlen(str);
     while (i < len) {
-        code += str[i] * pow(2, len - 1 - i);
+        code += str[i] * (int)pow(2, len - 1 - i);
         i++;
     }
 
@@ -505,6 +483,7 @@ double calc_node(Node* node) {
                     return lval * rval;
             }
         }
+        case data_type::ERROR_T:
 
         default:
             PRINT_WARNING("Incorret node data type\n");

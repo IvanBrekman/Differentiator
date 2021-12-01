@@ -60,6 +60,7 @@ int node_dtor(Node* node) {
     if (node->right != NULL) node_dtor(node->right);
 
     node->data   = DEINIT_VALUE;
+    
     node->parent = (Node*)poisons::FREED_PTR;
     node->left   = (Node*)poisons::FREED_PTR;
     node->right  = (Node*)poisons::FREED_PTR;
@@ -69,6 +70,7 @@ int node_dtor(Node* node) {
     node->left_canary  = POISON_CANARY;
     node->right_canary = POISON_CANARY;
 
+    FREE_PTR(node, Node);
     return 1;
 }
 
@@ -125,7 +127,7 @@ int Tree_error(Tree* tree) {
     return errors::OK_;
 }
 
-int Node_error(Node* node, int recursive_check, int (*node_data_ok)(node_t data)) {
+int Node_error(Node* node, int recursive_check) {
     if (!VALID_PTR(node)) {
         return errors::INVALID_NODE_PTR;
     }
@@ -145,10 +147,6 @@ int Node_error(Node* node, int recursive_check, int (*node_data_ok)(node_t data)
         return errors::INCORRECT_DEPTH;
     }
 
-    if (VALID_PTR(node_data_ok) && !node_data_ok(node->data)) {
-        return errors::INCORRECT_DATA;
-    }
-
     int err = -1;
     if (node->left  != NULL && recursive_check) {
         err = Node_error(node->left,  1);
@@ -160,6 +158,18 @@ int Node_error(Node* node, int recursive_check, int (*node_data_ok)(node_t data)
     }
 
     return errors::OK_;
+}
+
+int set_new_root(Tree* tree, Node* new_root) {
+    ASSERT_OK(tree,     Tree, "Check before set_new_root func", 0);
+    ASSERT_OK(new_root, Node, "Check before set_new_root func", 0);
+
+    node_dtor(tree->root);
+    tree->root = new_root;
+    update_tree_depth_size(tree);
+
+    ASSERT_OK(tree,     Tree, "Check after set_new_root func",  0);
+    return 1;
 }
 
 int add_child(Node* parent, Node* child, int is_left_child) {
@@ -342,7 +352,7 @@ int Tree_dump(Tree* tree, const char* reason, FILE* log) {
     return 1;
 }
 
-int write_tree_to_file(Tree* tree, const char* filename, write_type w_type) {
+int write_tree_to_file(Tree* tree, const char* filename, int w_type) {
     ASSERT_OK(tree, Tree, "Check before write_tree_to_file func", 0);
     ASSERT_IF(VALID_PTR(filename), "Invalid filename ptr", 0);
 
@@ -353,7 +363,7 @@ int write_tree_to_file(Tree* tree, const char* filename, write_type w_type) {
             preorder_write_nodes_to_file(tree->root, file);
             break;
         case write_type::INORDER:
-                inorder_write_nodes_to_file(tree->root, file);
+            inorder_write_nodes_to_file(tree->root, file);
             break;
 
         default:

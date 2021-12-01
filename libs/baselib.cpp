@@ -77,7 +77,7 @@ char* get_raw_text(const char* filename) {
     FILE* file = open_file(filename, "r");
     int f_size = file_size(filename);
 
-    char* data = (char*)calloc(f_size + 1, sizeof(char));
+    char* data = (char*)calloc_s(f_size + 1, sizeof(char));
     int  bytes = (int)fread(data, sizeof(char), f_size, file);
 
     ASSERT_IF(bytes == f_size, "Error in reading file", NULL);
@@ -86,6 +86,10 @@ char* get_raw_text(const char* filename) {
     return data;
 }
 
+
+//! Function clears string from space symbols
+//! \param string ptr to string
+//! \return       ptr to cleared string (same with string)
 char* delete_spaces(char* string) {
     ASSERT_IF(VALID_PTR(string), "Invalid string ptr", NULL);
 
@@ -126,16 +130,20 @@ int isbadreadptr(const void* ptr) {
 //! \param calendar_date ptr to string, where current date and time will bw written
 //! \return              ptr to calendar_date
 char* datetime(char* calendar_date) {
-    assert(VALID_PTR(calendar_date) && "Invalid calendar_date ptr");
+    ASSERT_IF(VALID_PTR(calendar_date), "Invalid calendar_date ptr", NULL);
 
     const time_t timer = time(NULL);
-    struct tm* calendar = localtime(&timer);
+    tm* calendar = localtime(&timer);
+    ASSERT_IF(VALID_PTR(calendar), "Invalid calendar ptr", NULL);
 
     strftime(calendar_date, 40, "%d.%m.%Y %H:%M:%S, %A", calendar);
 
     return calendar_date;
 }
 
+//! Function checks double number for integer
+//! \param number checking number
+//! \return       1 if number % 1 == 0, else 0
 int is_integer(double number) {
     return (number - (int)number) < FLOAT_COMPARE_PRESICION;
 }
@@ -159,7 +167,7 @@ int is_number(char* string) {
 //! \param radix  number system (default 10)
 //! \return       number of digits
 int digits_number(int number, int radix) {
-    assert(radix > 1 && "Incorrect radix value");
+    ASSERT_IF(radix > 1, "Incorrect radix value", -1);
 
     int digits = 0;
     while (number > 0) {
@@ -175,7 +183,7 @@ int digits_number(int number, int radix) {
 //! \param bit    number of bit
 //! \return       bit-th bit of number
 int extract_bit(int number, int bit) {
-    assert(bit >= 0 && "Incorrect bit number");
+    ASSERT_IF(bit >= 0, "Incorrect bit number", -1);
 
     return (number >> bit) & 1;
 }
@@ -184,7 +192,7 @@ int extract_bit(int number, int bit) {
 //! \param number converting number
 //! \return       converted to bin view number as string
 char* bin4(int number) {
-    char* bits = (char*) calloc(32, sizeof(char));
+    char* bits = (char*) calloc_s(32, sizeof(char));
     int real_bits = 0;
 
     while (number > 0) {
@@ -217,7 +225,7 @@ const char* to_string(int number) {
     }
 
     int d_num = digits_number(number, 10);
-    char* str_num = (char*) calloc(d_num + shift + 1, sizeof(char));
+    char* str_num = (char*) calloc_s(d_num + shift + 1, sizeof(char));
 
     for (int i = d_num - 1; number > 0; i--) {
         str_num[i + shift] = (char)('0' + (number % 10));
@@ -227,15 +235,4 @@ const char* to_string(int number) {
     str_num[d_num + shift] = '\0';
 
     return (const char*) str_num;
-}
-
-//! Function compares to int  values
-//! \param num1 ptr to first  value
-//! \param num2 ptr to second value
-//! \return     (< 0) if (num1 < num2), 0 if (num1 == num2), (>0) if (num1 > num2)
-int cmp_int(const void* num1, const void* num2) {
-    assert(VALID_PTR(num1) && "Invalid num1 ptr");
-    assert(VALID_PTR(num2) && "Invalid num2 ptr");
-    
-    return *(const int*)num1 - *(const int*)num2;
 }
