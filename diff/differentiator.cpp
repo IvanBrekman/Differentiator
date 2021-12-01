@@ -377,6 +377,7 @@ Tree* derivate_tree(Tree* tree) {
 
     if (simp_am != 0) {
         LOG1(LOG_DUMP_GRAPH(tree, "Check simplify tree", Tree_dump_graph););
+        latex_string("Упростим функцию, тогда f = ", latex_session);
         latex_node(tree->root, latex_session);
     }
     

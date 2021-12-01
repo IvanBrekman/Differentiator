@@ -38,7 +38,7 @@
 const double FLOAT_COMPARE_PRESICION = 0.0001;
 
 const int MAX_FILEPATH_SIZE       =  50;
-const int MAX_SPRINTF_STRING_SIZE = 300;
+const int MAX_SPRINTF_STRING_SIZE = 500;
 
 void* calloc_s(size_t __nmemb, size_t __size);
 

@@ -17,7 +17,7 @@ struct NodeContext {
     char* data = NULL;
 };
 
-const int MAX_LATEX_STRING = 300;
+const int MAX_LATEX_STRING = 500;
 
 FILE* latex_init_session(const char* filename);
 int   latex_end_session(FILE* tex_file);
