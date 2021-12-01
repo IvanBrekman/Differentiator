@@ -17,9 +17,48 @@ const Functions ALL_FUNCTIONS[] = {
 };
 #undef FUNC
 
-int latex_tree(Tree* tree, const char* filename) {
+FILE* latex_init_session(const char* filename) {
+    ASSERT_IF(filename, "Invalid filename ptr", NULL);
+
+    FILE* tex_file = open_file(filename, "w");
+
+    char* date = (char*) calloc_s(40, sizeof(char));
+    datetime(date);
+    SPR_FPUTS(tex_file, "\\documentclass{article}\n"
+                        "\\usepackage[utf8]{inputenc}\n\n"
+
+                        "\\usepackage[T2A]{fontenc}\n"
+                        "\\usepackage[russian]{babel}\n"
+                        "\\usepackage{amssymb}\n"
+                        "\\usepackage{geometry}\n"
+    );
+    SPR_FPUTS(tex_file, "\\geometry{verbose,a4paper,tmargin=2cm,bmargin=2cm,lmargin=2.0cm,rmargin=2.0cm}\n\n"
+
+                        "\\title{Differentiator}\n"
+                        "\\author{IvanBrekman}\n"
+                        "\\date{%s}\n\n"
+
+                        "\\begin{document}\n\n"
+
+                        "\\maketitle\n\n", date
+    );
+    FREE_PTR(date, char);
+
+    return tex_file;
+}
+
+int latex_end_session(FILE* tex_file) {
+    ASSERT_IF(VALID_PTR(tex_file), "Invalid tex_file ptr", 0);
+
+    fputs("\n\\end{document}\n", tex_file);
+    close_file(tex_file);
+
+    return 1;
+}
+
+int latex_tree(Tree* tree, FILE* session) {
     ASSERT_OK(tree, Tree,  "Check before latex_tree func", 0);
-    ASSERT_IF(VALID_PTR(filename), "Invalid filename ptr", 0);
+    ASSERT_IF(VALID_PTR(session), "Invalid session ptr", 0);
 
     NodeContext tree_context = get_node_latex(tree->root);
     ASSERT_IF(VALID_PTR(tree_context.data), "Error in get_node_latex func. Invalid data ptr", 0);
@@ -27,11 +66,19 @@ int latex_tree(Tree* tree, const char* filename) {
     LOG1(printf("result latex: '%s'\n", tree_context.data););
     WAIT_INPUT;
 
-    FILE* tex_file = open_file(filename, "w");
-
-    close_file(tex_file);
+    SPR_FPUTS(session, "$ %s $\n", tree_context.data);
 
     FREE_PTR(tree_context.data, char);
+    return 1;
+}
+
+int latex_to_pdf(const char* latex_file) {
+    ASSERT_IF(VALID_PTR(latex_file), "Invalid latex_file ptr", 0);
+
+    SPR_SYSTEM("pdflatex -interaction=nonstopmode %s > /dev/null", latex_file);
+    system("rm latex.aux latex.log");
+    system("mv latex.pdf tex_maker/");
+
     return 1;
 }
 

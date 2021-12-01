@@ -366,21 +366,25 @@ int Tree_dump_graph(Tree* tree, const char* reason, FILE* log, int show_parent_e
 Tree* derivate_tree(Tree* tree) {
     ASSERT_OK(tree, Tree, "Check before derivate_tree func", NULL);
 
-    latex_tree(tree, "logs/latex.tex");
+    FILE* latex_session = latex_init_session(LATEX_LOG_FILE);
+    latex_tree(tree, latex_session);
 
     LOG1(printf("Premilary simplification...\n"););
     simplify(tree);
-    latex_tree(tree, "logs/latex.tex");
+    latex_tree(tree, latex_session);
     LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
     set_new_root(tree, D(tree->root));
 
-    latex_tree(tree, "logs/latex.tex");
+    latex_tree(tree, latex_session);
     LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
     LOG1(printf("Derivative simplification...\n"););
     simplify(tree);
-    latex_tree(tree, "logs/latex.tex");
+    latex_tree(tree, latex_session);
+
+    latex_end_session(latex_session);
+    latex_to_pdf(LATEX_LOG_FILE);
 
     ASSERT_OK(tree, Tree, "Check after derivate_tree func", NULL);
     return tree;
@@ -418,7 +422,7 @@ Node* D(Node* node) {
                     return NULL;
             }
         case data_type::ERROR_T:
-        
+
         default:
             APRINT_WARNING("Unexpected data_type: %d\n", node->data.type);
             return NULL;
