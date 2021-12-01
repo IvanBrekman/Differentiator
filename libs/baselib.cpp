@@ -213,9 +213,12 @@ char* bin4(int number) {
 //! Function convert number to string
 //! \param number converting number
 //! \return       converted number
-const char* to_string(int number) {
+char* to_string(int number) {
     if (number == 0) {
-        return "0";
+        char* str_num = (char*) calloc_s(1 + 1, sizeof(char));
+        str_num[0] = '0';
+        str_num[1] = '\0';
+        return str_num;
     }
 
     int shift = 0;
@@ -234,5 +237,5 @@ const char* to_string(int number) {
     if (shift) str_num[0] = '-';
     str_num[d_num + shift] = '\0';
 
-    return (const char*) str_num;
+    return str_num;
 }

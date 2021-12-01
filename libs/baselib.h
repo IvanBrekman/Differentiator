@@ -38,7 +38,7 @@
 const double FLOAT_COMPARE_PRESICION = 0.0001;
 
 const int MAX_FILEPATH_SIZE       =  50;
-const int MAX_SPRINTF_STRING_SIZE = 200;
+const int MAX_SPRINTF_STRING_SIZE = 300;
 
 void* calloc_s(size_t __nmemb, size_t __size);
 
@@ -203,6 +203,6 @@ int digits_number(int number, int radix=10);
 int   extract_bit(int number, int bit);
 
 char* bin4(int number);
-const char* to_string(int number);
+char* to_string(int number);
 
 #endif //BASELIB_H

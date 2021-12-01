@@ -1,13 +1,13 @@
 cr:
 	clear
 	gcc main.cpp libs/baselib.cpp libs/tree.cpp -lstdc++ -o main.out
-	./main.out
+	./main.out logs/func.txt
 
 c:
 	gcc main.cpp libs/baselib.cpp libs/tree.cpp -lstdc++ -o main.out
 
 r:
-	./main.out
+	./main.out logs/func.txt
 
 
 dcr:

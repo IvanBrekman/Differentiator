@@ -23,7 +23,9 @@ FILE* latex_init_session(const char* filename);
 int   latex_end_session(FILE* tex_file);
 int   latex_to_pdf(const char* latex_file);
 
-int latex_tree(Tree* tree, FILE* session);
+int latex_string(const char* message, FILE* session);
+
+int latex_node(Node* node, FILE* session, const char* end="\\newline\n");
 int get_priority(node_t data);
 int print_context(NodeContext* context);
 

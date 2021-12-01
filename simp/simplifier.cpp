@@ -41,8 +41,6 @@ int simplify(Tree* tree) {
         WAIT_INPUT;
     }
 
-    update_tree_depth_size(tree);
-
     ASSERT_OK(tree, Tree, "Check after simplify func", -1);
     return simplifications_amount;
 }

@@ -13,6 +13,7 @@
 #include "../libs/tree.h"
 
 #include "differentiator.h"
+#include "phrases.h"
 #include "../simp/simplifier.h"
 #include "../tex_maker/latex.h"
 
@@ -33,7 +34,7 @@ int main(int argc, char** argv) {
 
     Tree tree = { };
     tree_ctor(&tree);
-    read_tree_from_file(&tree, "logs/func.txt");
+    read_tree_from_file(&tree, argv[1]);
 
     LOG2(Tree_dump(&tree, "Check reading tree"););
     LOG_DUMP_GRAPH(&tree, "Check creating tree", Tree_dump_graph);
@@ -367,22 +368,23 @@ Tree* derivate_tree(Tree* tree) {
     ASSERT_OK(tree, Tree, "Check before derivate_tree func", NULL);
 
     FILE* latex_session = latex_init_session(LATEX_LOG_FILE);
-    latex_tree(tree, latex_session);
+
+    latex_string("Продифференуируем функцию f = ", latex_session);
+    latex_node(tree->root, latex_session);
 
     LOG1(printf("Premilary simplification...\n"););
-    simplify(tree);
-    latex_tree(tree, latex_session);
+    int simp_am = simplify(tree);
+
+    if (simp_am != 0) {
+        LOG1(LOG_DUMP_GRAPH(tree, "Check simplify tree", Tree_dump_graph););
+        latex_node(tree->root, latex_session);
+    }
+    
+    set_new_root(tree, get_D(tree->root, latex_session));
     LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
-    set_new_root(tree, D(tree->root));
-    LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
-
-    latex_tree(tree, latex_session);
-    LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
-
-    LOG1(printf("Derivative simplification...\n"););
-    simplify(tree);
-    latex_tree(tree, latex_session);
+    latex_string("Таким образом имеем f$^\\prime$ = ", latex_session);
+    latex_node(tree->root, latex_session);
 
     latex_end_session(latex_session);
     latex_to_pdf(LATEX_LOG_FILE);
@@ -391,7 +393,33 @@ Tree* derivate_tree(Tree* tree) {
     return tree;
 }
 
-Node* D(Node* node) {
+Node* get_D(Node* node, FILE* session) {
+    ASSERT_OK(node, Node, "Check before get_D func", NULL);
+
+    Node* node_d = D(node, session);
+
+    latex_string(get_random_trans_phrase(), session);
+    latex_string("\\newline\n(", session);
+    latex_node(node,   session, ")$ ^\\prime $ = ");
+    latex_node(node_d, session, "");
+
+    Tree tmp_tree = { };
+    tree_ctor(&tmp_tree);
+    set_new_root(&tmp_tree, node_d);
+    int simp_amount = simplify(&tmp_tree);
+
+    if (simp_amount != 0) {
+        latex_string(" = ", session);
+        latex_node(tmp_tree.root, session);
+    } else {
+        latex_string("\\newline\n", session);
+    }
+    latex_string("\\newline\n", session);
+
+    return tmp_tree.root;
+}
+
+Node* D(Node* node, FILE* session) {
     ASSERT_OK(node, Node, "Check before Ded func", NULL);
 
     switch (node->data.type) {

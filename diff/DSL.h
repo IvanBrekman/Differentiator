@@ -8,8 +8,8 @@
 #define NEW_CONST NEW_VCONST(0)
 #define   NEW_VAL NEW_VCONST(1)
 
-#define DL D(node->left)
-#define DR D(node->right)
+#define DL get_D(node->left,  session)
+#define DR get_D(node->right, session)
 #define CL copy_node(node->left,  node->parent)
 #define CR copy_node(node->right, node->parent)
 

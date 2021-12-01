@@ -56,19 +56,19 @@ int latex_end_session(FILE* tex_file) {
     return 1;
 }
 
-int latex_tree(Tree* tree, FILE* session) {
-    ASSERT_OK(tree, Tree,  "Check before latex_tree func", 0);
+int latex_node(Node* node, FILE* session, const char* end) {
+    ASSERT_OK(node, Node,  "Check before latex_node func", 0);
     ASSERT_IF(VALID_PTR(session), "Invalid session ptr", 0);
 
-    NodeContext tree_context = get_node_latex(tree->root);
-    ASSERT_IF(VALID_PTR(tree_context.data), "Error in get_node_latex func. Invalid data ptr", 0);
+    NodeContext node_context = get_node_latex(node);
+    ASSERT_IF(VALID_PTR(node_context.data), "Error in get_node_latex func. Invalid data ptr", 0);
 
-    LOG1(printf("result latex: '%s'\n", tree_context.data););
+    LOG1(printf("result latex: '%s'\n", node_context.data););
     WAIT_INPUT;
 
-    SPR_FPUTS(session, "$ %s $\n", tree_context.data);
+    SPR_FPUTS(session, "$ %s $%s", node_context.data, end);
 
-    FREE_PTR(tree_context.data, char);
+    FREE_PTR(node_context.data, char);
     return 1;
 }
 
@@ -78,6 +78,15 @@ int latex_to_pdf(const char* latex_file) {
     SPR_SYSTEM("pdflatex -interaction=nonstopmode %s > /dev/null", latex_file);
     system("rm latex.aux latex.log");
     system("mv latex.pdf tex_maker/");
+
+    return 1;
+}
+
+int latex_string(const char* message, FILE* session) {
+    ASSERT_IF(VALID_PTR(message), "Invalid message ptr", 0);
+    ASSERT_IF(VALID_PTR(session), "Invalid session ptr", 0);
+
+    SPR_FPUTS(session, message);
 
     return 1;
 }
@@ -213,8 +222,8 @@ NodeContext render_template(const char* node_template, NodeContext opp_context, 
                 "render:   %s\n\n", node_template, node_string);
     );
 
-    // dbg(printf("lcontext data: %p (%d): '%s'\nrcontext data: %p (%d): '%s'\n\n", lcontext.data, VALID_PTR(lcontext.data), lcontext.data, rcontext.data, VALID_PTR(rcontext.data), rcontext.data););
-    // FREE_PTR(lcontext.data, char);
-    // FREE_PTR(rcontext.data, char);
+    LOG1(printf("lcontext data: %p (%d): '%s'\nrcontext data: %p (%d): '%s'\n\n", lcontext.data, VALID_PTR(lcontext.data), lcontext.data, rcontext.data, VALID_PTR(rcontext.data), rcontext.data););
+    FREE_PTR(lcontext.data, char);
+    FREE_PTR(rcontext.data, char);
     return { opp_context.priority, lcontext.nodes_amount + rcontext.nodes_amount, node_string };
 }
