@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    printf("Diffirentiator. File path: %s\n", argv[1]);
+    printf("Diffirentiator. File path: '%s'\n", argv[1]);
 
     Tree tree = { };
     tree_ctor(&tree);
@@ -385,7 +385,7 @@ Tree* derivate_tree(Tree* tree) {
     LOG1(LOG_DUMP_GRAPH(tree, "Check differ tree", Tree_dump_graph););
 
     latex_string("Таким образом имеем f$^\\prime$ = ", latex_session);
-    latex_node(tree->root, latex_session);
+    latex_node(tree->root, latex_session, "");
 
     latex_end_session(latex_session);
     latex_to_pdf(LATEX_LOG_FILE);

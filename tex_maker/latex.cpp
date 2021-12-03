@@ -17,6 +17,18 @@ const Functions ALL_FUNCTIONS[] = {
 };
 #undef FUNC
 
+#define DINDEX REPLACEMENTS_DATA.index
+Replacements REPLACEMENTS_DATA = {
+    {
+        "\\alpha",  "\\beta", "\\gamma", "\\delta", "\\epsilon",
+        "\\zeta",   "\\eta",  "\\theta", "\\iota",  "\\kappa",
+        "\\lambda", "\\mu",   "\\nu",    "\\ri",    "o",
+        "\\pi",     "\\rho",  "\\sigma", "\\tau",   "\\upsilon",
+        "\\phi",    "\\chi",  "\\psi",   "\\omega"
+    },
+    0
+};
+
 FILE* latex_init_session(const char* filename) {
     ASSERT_IF(filename, "Invalid filename ptr", NULL);
 
@@ -40,7 +52,8 @@ FILE* latex_init_session(const char* filename) {
 
                         "\\begin{document}\n\n"
 
-                        "\\maketitle\n\n", date
+                        "\\maketitle\n\n"
+                        "\\section {Производная}\n", date
     );
     FREE_PTR(date, char);
 
@@ -60,14 +73,25 @@ int latex_node(Node* node, FILE* session, const char* end) {
     ASSERT_OK(node, Node,  "Check before latex_node func", 0);
     ASSERT_IF(VALID_PTR(session), "Invalid session ptr", 0);
 
-    NodeContext node_context = get_node_latex(node);
+    char** replacements = (char**) calloc_s(MAX_REPLACEMENTS, sizeof(char*));
+
+    NodeContext node_context = get_node_latex(node, replacements);
     ASSERT_IF(VALID_PTR(node_context.data), "Error in get_node_latex func. Invalid data ptr", 0);
 
     LOG1(printf("result latex: '%s'\n", node_context.data););
     WAIT_INPUT;
 
     SPR_FPUTS(session, "$ %s $%s", node_context.data, end);
+    if (DINDEX > 0) {
+        SPR_FPUTS(session, " ,\\newline\nгде ");
+        for (int i = DINDEX - 1; i >= 0; i--) {
+            SPR_FPUTS(session, "$ %s = %s $", REPLACEMENTS_DATA.letters[i], replacements[i]);
+            SPR_FPUTS(session, "%s \\newline\n", ( i + 1 < DINDEX) ? "," : "");
+        }
+        DINDEX = 0;
+    }
 
+    FREE_PTR(replacements, char*);
     FREE_PTR(node_context.data, char);
     return 1;
 }
@@ -75,7 +99,9 @@ int latex_node(Node* node, FILE* session, const char* end) {
 int latex_to_pdf(const char* latex_file) {
     ASSERT_IF(VALID_PTR(latex_file), "Invalid latex_file ptr", 0);
 
+    APRINT_WARNING("'%s'\n\n\n", latex_file);
     SPR_SYSTEM("pdflatex -interaction=nonstopmode %s > /dev/null", latex_file);
+    getchar();
     system("rm latex.aux latex.log");
     system("mv latex.pdf tex_maker/");
 
@@ -133,7 +159,7 @@ int print_context(NodeContext* context) {
     return 1;
 }
 
-NodeContext get_node_latex(Node* node) {
+NodeContext get_node_latex(Node* node, char** replacements) {
     ASSERT_OK(node, Node, "Check before get_node_latex func", { });
 
     int cur_priority = get_priority(node->data);
@@ -156,21 +182,32 @@ NodeContext get_node_latex(Node* node) {
     NodeContext lcontext = { };
     NodeContext rcontext = { };
 
-    if (VALID_PTR(node->left))  lcontext = get_node_latex(node->left);
-    if (VALID_PTR(node->right)) rcontext = get_node_latex(node->right);
+    if (VALID_PTR(node->left))  lcontext = get_node_latex(node->left,  replacements);
+    if (VALID_PTR(node->right)) rcontext = get_node_latex(node->right, replacements);
+
+    if (lcontext.nodes_amount + rcontext.nodes_amount > MAX_NODES_IN_STRING) {
+        replacements[DINDEX]     = lcontext.data;
+        replacements[DINDEX + 1] = rcontext.data;
+
+        lcontext.data = strdup(REPLACEMENTS_DATA.letters[DINDEX++]);
+        rcontext.data = strdup(REPLACEMENTS_DATA.letters[DINDEX++]);
+
+        lcontext.nodes_amount = 1;
+        rcontext.nodes_amount = 1;
+    }
 
     LOG2(print_context(&lcontext););
     LOG2(print_context(&rcontext););
 
     switch (VAL) {
         case opp_type::PLUS:
-            return render_template("L + R",      context, lcontext, rcontext);
+            return render_template("L + R",        context, lcontext, rcontext);
         case opp_type::MINUS:
-            return render_template("L - R",      context, lcontext, rcontext);
+            return render_template("L - R",        context, lcontext, rcontext);
         case opp_type::MULTIPLY:
-            return render_template("L \\cdot R", context, lcontext, rcontext);
+            return render_template("L \\cdot R",   context, lcontext, rcontext);
         case opp_type::DIVISION:
-            return render_template("\\frac{L}{R}",   context, lcontext, rcontext);
+            return render_template("\\frac{L}{R}", context, lcontext, rcontext);
         case opp_type::DEGREE:
             return render_template("{L}^{R}",      context, lcontext, rcontext);;
         
