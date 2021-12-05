@@ -39,7 +39,6 @@ FILE* latex_init_session(const char* filename) {
     SPR_FPUTS(tex_file, "\\documentclass{article}\n"
                         "\\usepackage[utf8]{inputenc}\n\n"
 
-                        "\\usepackage[T2A]{fontenc}\n"
                         "\\usepackage[russian]{babel}\n"
                         "\\usepackage{amssymb}\n"
                         "\\usepackage{geometry}\n"
@@ -99,9 +98,7 @@ int latex_node(Node* node, FILE* session, const char* end) {
 int latex_to_pdf(const char* latex_file) {
     ASSERT_IF(VALID_PTR(latex_file), "Invalid latex_file ptr", 0);
 
-    APRINT_WARNING("'%s'\n\n\n", latex_file);
     SPR_SYSTEM("pdflatex -interaction=nonstopmode %s > /dev/null", latex_file);
-    getchar();
     system("rm latex.aux latex.log");
     system("mv latex.pdf tex_maker/");
 
@@ -112,7 +109,7 @@ int latex_string(const char* message, FILE* session) {
     ASSERT_IF(VALID_PTR(message), "Invalid message ptr", 0);
     ASSERT_IF(VALID_PTR(session), "Invalid session ptr", 0);
 
-    SPR_FPUTS(session, message);
+    fputs(message, session);
 
     return 1;
 }
@@ -185,14 +182,14 @@ NodeContext get_node_latex(Node* node, char** replacements) {
     if (VALID_PTR(node->left))  lcontext = get_node_latex(node->left,  replacements);
     if (VALID_PTR(node->right)) rcontext = get_node_latex(node->right, replacements);
 
-    if (lcontext.nodes_amount + rcontext.nodes_amount > MAX_NODES_IN_STRING) {
-        replacements[DINDEX]     = lcontext.data;
-        replacements[DINDEX + 1] = rcontext.data;
-
+    if (lcontext.nodes_amount > MAX_NODES_IN_STRING) {
+        replacements[DINDEX]  = lcontext.data;
         lcontext.data = strdup(REPLACEMENTS_DATA.letters[DINDEX++]);
-        rcontext.data = strdup(REPLACEMENTS_DATA.letters[DINDEX++]);
-
         lcontext.nodes_amount = 1;
+    }
+    if (rcontext.nodes_amount > MAX_NODES_IN_STRING) {
+        replacements[DINDEX]  = rcontext.data;
+        rcontext.data = strdup(REPLACEMENTS_DATA.letters[DINDEX++]);
         rcontext.nodes_amount = 1;
     }
 
@@ -212,7 +209,7 @@ NodeContext get_node_latex(Node* node, char** replacements) {
             return render_template("{L}^{R}",      context, lcontext, rcontext);;
         
         default:
-            for (int i = 0; i < sizeof(ALL_FUNCTIONS) / sizeof(ALL_FUNCTIONS[0]); i++) {
+            for (int i = 0; i < (int)(sizeof(ALL_FUNCTIONS) / sizeof(ALL_FUNCTIONS[0])); i++) {
                 if (ALL_FUNCTIONS[i].code == VAL) {
                     return render_template(ALL_FUNCTIONS[i].latex_temp, context, lcontext, rcontext);
                 }

@@ -24,7 +24,7 @@ struct NodeContext {
 };
 
 const int MAX_LATEX_STRING    = 500;
-const int MAX_NODES_IN_STRING = 20;
+const int MAX_NODES_IN_STRING = 10;
 
 FILE* latex_init_session(const char* filename);
 int   latex_end_session(FILE* tex_file);

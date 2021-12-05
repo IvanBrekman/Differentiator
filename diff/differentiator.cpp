@@ -17,6 +17,8 @@
 #include "../simp/simplifier.h"
 #include "../tex_maker/latex.h"
 
+const char* LATEX_LOG_FILE = "logs/latex.tex";
+
 #define FUNC(name, priority, template, code) { name, template, get_code(name), priority },
 const Functions ALL_FUNCTIONS[] = {
     #include "functions.h"
@@ -37,7 +39,7 @@ int main(int argc, char** argv) {
     read_tree_from_file(&tree, argv[1]);
 
     LOG2(Tree_dump(&tree, "Check reading tree"););
-    LOG_DUMP_GRAPH(&tree, "Check creating tree", Tree_dump_graph);
+    LOG_DUMP_GRAPH(&tree, "Check reading tree", Tree_dump_graph);
     WAIT_INPUT;
     
     derivate_tree(&tree);
@@ -511,8 +513,8 @@ double calc_node(Node* node) {
                 case opp_type::DEGREE:   return pow(lval, rval);
 
                 default:
-                    APRINT_WARNING("Calculation for operator with code %d is undefined.\n"
-                                   "Dont use this call for simplifications. Result of func will be (lval * rval)\n", node->data.value);
+                    LOG1(APRINT_WARNING("Calculation for operator with code %d is undefined.\n"
+                                        "Dont use this call for simplifications. Result of func will be (lval * rval)\n", node->data.value););
                     errno = -1;
                     return lval * rval;
             }

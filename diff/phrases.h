@@ -4,6 +4,8 @@
 
 #include <cstdlib>
 
+const char* get_random_trans_phrase();
+
 const char* TRANSITIONAL_PHRASES[] = {
     "Преобразуя получаем ",
     "Нетрудно заметить, что ",
@@ -19,7 +21,7 @@ const char* TRANSITIONAL_PHRASES[] = {
 };
 
 const char* get_random_trans_phrase() {
-    int index = rand() % (sizeof(TRANSITIONAL_PHRASES) / sizeof(TRANSITIONAL_PHRASES[0]));
+    long unsigned int index = rand() % (sizeof(TRANSITIONAL_PHRASES) / sizeof(TRANSITIONAL_PHRASES[0]));
 
     return TRANSITIONAL_PHRASES[index];
 }

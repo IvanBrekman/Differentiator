@@ -31,7 +31,6 @@
 #define IS_CONST(val) !std::isnan(val)
 #define IS_VAR(val)    std::isnan(val)
 
-static const char* LATEX_LOG_FILE = "logs/latex.tex";
 const int  OPEN_BRACKET   = '(';
 const int CLOSE_BRACKET   = ')';
 const int VARIABLE_SYMBOL = 'x';
